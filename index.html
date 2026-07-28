@@ -3,173 +3,262 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Daily Operations Checklist</title>
+  <title>ALBIOMA Daily Operations Checklist</title>
   <style>
     :root {
-      --primary: #2563eb;
-      --primary-hover: #1d4ed8;
-      --bg: #f8fafc;
-      --card-bg: #ffffff;
-      --text: #0f172a;
-      --text-muted: #64748b;
-      --border: #e2e8f0;
-      --success: #16a34a;
-      --danger: #dc2626;
+      /* Palette derived from ALBIOMA logo */
+      --albioma-green-dark: #2A7218;    /* Dark green text */
+      --albioma-green-mid: #52AA14;     /* Mid green accents/buttons */
+      --albioma-green-light: #98D066;   /* Light green borders */
+      --bg-main: #FFFFFF;
+      --bg-section: #F8FAF7;            /* Very subtle green-tint background */
+      --text-dark: #333333;
+      --text-muted: #666666;
+      --border: #DAE6DA;
+      --success: #52AA14;               /* ALBIOMA green for success */
+      --danger: #D62D20;                /* Aligned red for danger */
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 16px; max-width: 800px; margin: 0 auto; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+    body { background-color: var(--bg-section); color: var(--text-dark); padding: 0; }
 
-    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 2px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-    h1 { font-size: 1.4rem; color: var(--text); }
+    /* INTEGRATED APPLICATION HEADER */
+    .app-header {
+      background-color: var(--bg-main);
+      border-bottom: 2px solid var(--albioma-green-mid);
+      padding: 16px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
 
+    .app-branding {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .app-logo {
+      height: 48px; /* Standard logo height */
+      width: auto;
+    }
+
+    .app-title-container {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .app-title {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--albioma-green-dark);
+      letter-spacing: -0.5px;
+    }
+
+    .app-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: -2px;
+    }
+
+    /* NAVIGATION - Styled to flow from header */
     nav { display: flex; gap: 8px; }
-    .nav-btn { background: #e2e8f0; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; color: var(--text-muted); }
-    .nav-btn.active { background: var(--primary); color: white; }
+    .nav-btn {
+      background-color: var(--bg-section);
+      border: 1px solid var(--border);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      transition: all 0.2s ease-out;
+    }
+    .nav-btn.active {
+      background-color: var(--albioma-green-mid);
+      color: white;
+      border-color: var(--albioma-green-mid);
+      box-shadow: 0 4px 10px -2px rgba(82, 170, 20, 0.3);
+    }
+    .nav-btn:not(.active):hover {
+      background-color: #EEF7EE;
+      border-color: var(--albioma-green-light);
+      color: var(--albioma-green-dark);
+    }
 
-    .panel { display: none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    /* MAIN CONTENT PANELS */
+    main { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
+    .panel { display: none; background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.03); }
     .panel.active { display: block; }
 
-    .form-group { margin-bottom: 16px; }
-    label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
-    input[type="text"], input[type="password"], input[type="date"], select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; }
-    input:focus, select:focus { border-color: var(--primary); }
+    /* FORM ELEMENTS & BUTTONS - ALBIOMA STYLING */
+    .form-group { margin-bottom: 20px; }
+    label { display: block; font-size: 0.85rem; font-weight: 700; color: var(--albioma-green-dark); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    input[type="text"], input[type="password"], input[type="date"], select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.2s; background-color: var(--bg-section); }
+    input:focus, select:focus { border-color: var(--albioma-green-mid); background-color: white; box-shadow: 0 0 0 3px rgba(82, 170, 20, 0.1); }
 
-    .btn { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
-    .btn:hover { background: var(--primary-hover); }
+    .btn { background: var(--albioma-green-mid); color: white; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; font-size: 0.95rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s; text-align: center; justify-content: center;}
+    .btn:hover { background: #459111; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     .btn-danger { background: var(--danger); }
-    .btn-danger:hover { background: #b91c1c; }
+    .btn-danger:hover { background: #B2251A; }
     .btn-success { background: var(--success); }
-    .btn-success:hover { background: #15803d; }
+    .btn-success:hover { background: #459111; }
+    .btn-secondary { background: #DAE6DA; color: var(--albioma-green-dark); }
+    .btn-secondary:hover { background: #CCDCCD; }
 
-    .top-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    /* CHECKLIST INTERFACE STYLING */
+    .top-bar { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; background-color: #F0F7F0; border-radius: 10px; padding: 15px; border: 1px solid #E3ECE3;}
     .top-bar > div { flex: 1; min-width: 180px; }
 
-    .task-card { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; transition: all 0.2s; }
-    .task-card.completed { background-color: #f0fdf4; border-color: #bbf7d0; }
-    .task-info { display: flex; align-items: center; gap: 12px; }
-    .task-checkbox { width: 20px; height: 20px; cursor: pointer; }
-    .task-title { font-size: 1rem; font-weight: 500; }
-    .task-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+    .task-card { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; transition: all 0.2s; background: white; }
+    .task-card.completed { background-color: #F8FAF7; border-color: var(--albioma-green-light); border-left-width: 6px; border-left-color: var(--albioma-green-mid); }
+    .task-info { display: flex; align-items: center; gap: 15px; flex-grow: 1; }
+    .task-checkbox { width: 24px; height: 24px; cursor: pointer; accent-color: var(--albioma-green-mid); }
+    .task-title { font-size: 1.1rem; font-weight: 500; color: #111; }
+    .task-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 3px; font-weight: 500;}
+    .task-meta strong { color: var(--albioma-green-dark); }
 
-    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+    /* ADMIN & HISTORY COMPONENTS */
+    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
 
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-    th { color: var(--text-muted); font-weight: 600; background: #f1f5f9; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;}
+    th, td { text-align: left; padding: 14px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    th { color: var(--albioma-green-dark); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.8rem; background: #EEF7EE; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background-color: #FAFDF8; }
 
-    .empty-state { text-align: center; color: var(--text-muted); padding: 30px 10px; }
+    .empty-state { text-align: center; color: var(--text-muted); padding: 50px 20px; background-color: var(--bg-section); border-radius: 10px; border: 2px dashed var(--border); margin: 20px 0;}
     
-    .pin-auth-container { text-align: center; padding: 30px 10px; max-width: 320px; margin: 0 auto; }
-    .pin-auth-container input { text-align: center; letter-spacing: 4px; font-size: 1.2rem; margin-bottom: 12px; }
+    .pin-auth-container { text-align: center; padding: 40px 20px; max-width: 360px; margin: 40px auto; background: white; border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.05);}
+    .pin-auth-container input { text-align: center; letter-spacing: 6px; font-size: 1.4rem; margin-bottom: 20px; font-family: 'Courier New', monospace;}
   </style>
 </head>
 <body>
 
-  <header>
-    <h1>Daily Checklist</h1>
+  <!-- INTEGRATED APP HEADER -->
+  <header class="app-header">
+    <div class="app-branding">
+      <!-- Ensure 'albioma-logo.png' is in the exact same folder as this HTML file -->
+      <img src="albioma-logo.png" alt="ALBIOMA Logo" class="app-logo" />
+      <div class="app-title-container">
+        <h1 class="app-title">Checks</h1>
+        <p class="app-subtitle">Daily Operations Management</p>
+      </div>
+    </div>
     <nav>
       <button class="nav-btn active" onclick="switchTab('checklist')">Checklist</button>
-      <button class="nav-btn" onclick="switchTab('admin')">Admin</button>
+      <button class="nav-btn" onclick="switchTab('admin')">Admin Panel</button>
       <button class="nav-btn" onclick="switchTab('history')">History Log</button>
     </nav>
   </header>
 
-  <!-- CHECKLIST TAB -->
-  <section id="checklist" class="panel active">
-    <div class="top-bar">
-      <div>
-        <label for="check-date">Select Date</label>
-        <input type="date" id="check-date" onchange="renderChecklist()" />
-      </div>
-      <div>
-        <label for="operator-name">Current Operator</label>
-        <input type="text" id="operator-name" placeholder="Enter your name or ID" oninput="saveOperatorPreference()" />
-      </div>
-    </div>
-
-    <div id="checklist-container"></div>
-  </section>
-
-  <!-- ADMIN TAB -->
-  <section id="admin" class="panel">
-    <!-- PIN Verification Screen -->
-    <div id="admin-lock" class="pin-auth-container">
-      <h2 style="font-size: 1.1rem; margin-bottom: 10px;">Admin Access Required</h2>
-      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Enter 4-digit PIN to access task management.</p>
-      <input type="password" id="pin-input" maxlength="8" placeholder="••••" />
-      <button class="btn" style="width: 100%; justify-content: center;" onclick="verifyPin()">Unlock Admin</button>
-      <p id="pin-error" style="color: var(--danger); font-size: 0.8rem; margin-top: 10px; display: none;">Incorrect PIN. Default is 1234.</p>
-    </div>
-
-    <!-- Admin Content Screen (Hidden until authenticated) -->
-    <div id="admin-content" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-        <h2 style="font-size: 1.1rem;">Task Management</h2>
-        <button class="nav-btn" onclick="lockAdmin()">Lock Panel</button>
+  <!-- MAIN CONTENT AREA -->
+  <main>
+    
+    <!-- CHECKLIST TAB -->
+    <section id="checklist" class="panel active">
+      <div class="top-bar">
+        <div>
+          <label for="check-date">Select Date</label>
+          <input type="date" id="check-date" onchange="renderChecklist()" />
+        </div>
+        <div>
+          <label for="operator-name">Current Operator</label>
+          <input type="text" id="operator-name" placeholder="Name or Staff ID" oninput="saveOperatorPreference()" />
+        </div>
       </div>
 
-      <div class="form-group">
-        <label for="new-task-title">Task Description</label>
-        <input type="text" id="new-task-title" placeholder="e.g. Inspect fluid levels & equipment" />
+      <div id="checklist-container"></div>
+    </section>
+
+    <!-- ADMIN TAB -->
+    <section id="admin" class="panel">
+      <!-- PIN Verification Screen -->
+      <div id="admin-lock" class="pin-auth-container">
+        <h2 style="font-size: 1.3rem; color: var(--albioma-green-dark); margin-bottom: 15px;">Admin Authorization</h2>
+        <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 24px;">Enter PIN to manage tasks. (Default: 1234)</p>
+        <div class="form-group">
+          <input type="password" id="pin-input" maxlength="8" placeholder="••••" />
+        </div>
+        <button class="btn" style="width: 100%;" onclick="verifyPin()">Unlock Admin Panel</button>
+        <p id="pin-error" style="color: var(--danger); font-size: 0.8rem; margin-top: 15px; font-weight: 600; display: none;">Error: Incorrect PIN. Please try again.</p>
       </div>
-      <button class="btn" onclick="addTaskTemplate()">Add Task</button>
 
-      <h3 style="font-size: 0.95rem; margin: 24px 0 12px; color: var(--text-muted);">Master Task Templates</h3>
-      <div id="admin-task-list"></div>
+      <!-- Admin Content Screen (Hidden until authenticated) -->
+      <div id="admin-content" style="display: none;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; padding-bottom: 15px; border-bottom: 2px solid var(--border);">
+          <h2 style="font-size: 1.4rem; color: var(--albioma-green-dark);">Task Template Management</h2>
+          <button class="btn-secondary nav-btn" onclick="lockAdmin()">Lock Panel</button>
+        </div>
 
-      <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;" />
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label for="new-task-title">New Task Description</label>
+          <input type="text" id="new-task-title" placeholder="e.g., Boiler Temperature Check" />
+        </div>
+        <button class="btn" style="width: auto;" onclick="addTaskTemplate()">Add Task Template</button>
 
-      <h3 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--text-muted);">Admin Security</h3>
-      <div class="form-group" style="max-width: 250px;">
-        <label for="new-pin">Change Admin PIN</label>
-        <input type="password" id="new-pin" placeholder="Enter new PIN" />
+        <h3 style="font-size: 1rem; margin: 30px 0 15px; color: var(--albioma-green-dark); font-weight: 700; text-transform: uppercase;">Current Task Templates</h3>
+        <div id="admin-task-list"></div>
+
+        <div style="margin-top: 40px; padding: 20px; background-color: var(--bg-section); border-radius: 10px; border: 1px solid var(--border);">
+          <h3 style="font-size: 1rem; margin-bottom: 15px; color: var(--albioma-green-dark);">Security Settings</h3>
+          <div class="form-group" style="max-width: 300px;">
+            <label for="new-pin">Change Admin PIN</label>
+            <input type="password" id="new-pin" placeholder="Enter new PIN" />
+          </div>
+          <button class="btn btn-secondary" onclick="changePin()">Update PIN</button>
+        </div>
       </div>
-      <button class="btn" onclick="changePin()">Update PIN</button>
-    </div>
-  </section>
+    </section>
 
-  <!-- HISTORY LOG TAB -->
-  <section id="history" class="panel">
-    <div class="history-header">
-      <h2 style="font-size: 1.1rem;">Completion Log</h2>
-      <button class="btn btn-success" onclick="exportToCSV()">Export to CSV</button>
-    </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Task</th>
-          <th>Completed By</th>
-          <th>Time</th>
-        </tr>
-      </thead>
-      <tbody id="history-table-body"></tbody>
-    </table>
-  </section>
+    <!-- HISTORY LOG TAB -->
+    <section id="history" class="panel">
+      <div class="history-header">
+        <h2 style="font-size: 1.4rem; color: var(--albioma-green-dark);">Completion Log</h2>
+        <button class="btn btn-success" onclick="exportToCSV()">Export Data to CSV</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Task Description</th>
+            <th>Operator</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="history-table-body"></tbody>
+      </table>
+    </section>
+
+  </main>
 
   <script>
-    // LocalStorage Keys
-    const TASKS_KEY = 'daily_app_tasks';
-    const LOGS_KEY = 'daily_app_logs';
-    const OPERATOR_KEY = 'daily_app_operator';
-    const PIN_KEY = 'daily_app_pin';
+    /* LOCALSTORAGE KEYS */
+    const TASKS_KEY = 'albioma_checklist_tasks';
+    const LOGS_KEY = 'albioma_checklist_logs';
+    const OPERATOR_KEY = 'albioma_checklist_operator';
+    const PIN_KEY = 'albioma_checklist_pin';
 
-    // State Initialization
+    /* STATE INITIALIZATION */
     let isAdminUnlocked = false;
-    let adminPin = localStorage.getItem(PIN_KEY) || '1234'; // Default PIN: 1234
+    let adminPin = localStorage.getItem(PIN_KEY) || '1234'; /* Default PIN */
     
     let tasks = JSON.parse(localStorage.getItem(TASKS_KEY)) || [
-      { id: '1', title: 'Start-of-day safety inspection' },
-      { id: '2', title: 'Check equipment fluid levels' },
-      { id: '3', title: 'End-of-shift site clean up' }
+      { id: '1', title: 'Boiler temperature & pressure check' },
+      { id: '2', title: 'Feed water pump inspection' },
+      { id: '3', title: 'Flue gas treatment monitor verify' },
+      { id: '4', title: 'End-of-shift control panel log' }
     ];
     let logs = JSON.parse(localStorage.getItem(LOGS_KEY)) || [];
 
     document.getElementById('check-date').valueAsDate = new Date();
     document.getElementById('operator-name').value = localStorage.getItem(OPERATOR_KEY) || '';
 
-    // Initialize App
+    /* INITIALIZE APP */
     saveTasks();
     renderChecklist();
 
@@ -178,14 +267,14 @@
       document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
       
       document.getElementById(tabId).classList.add('active');
-      event.target.classList.add('active');
+      event.currentTarget.classList.add('active');
 
       if (tabId === 'checklist') renderChecklist();
       if (tabId === 'admin') renderAdminState();
       if (tabId === 'history') renderHistory();
     }
 
-    /* --- PIN AUTHENTICATION --- */
+    /* PIN AUTHENTICATION */
     function verifyPin() {
       const input = document.getElementById('pin-input').value;
       if (input === adminPin) {
@@ -206,13 +295,13 @@
     function changePin() {
       const newPinInput = document.getElementById('new-pin').value.trim();
       if (!newPinInput) {
-        alert('Please enter a valid PIN.');
+        alert('Error: Please enter a valid PIN.');
         return;
       }
       adminPin = newPinInput;
       localStorage.setItem(PIN_KEY, adminPin);
       document.getElementById('new-pin').value = '';
-      alert('Admin PIN updated successfully.');
+      alert('Success: Admin PIN updated.');
     }
 
     function renderAdminState() {
@@ -229,7 +318,7 @@
       }
     }
 
-    /* --- DATA STORAGE & LOGIC --- */
+    /* DATA STORAGE & LOGIC */
     function saveOperatorPreference() {
       const op = document.getElementById('operator-name').value;
       localStorage.setItem(OPERATOR_KEY, op);
@@ -249,7 +338,7 @@
       container.innerHTML = '';
 
       if (tasks.length === 0) {
-        container.innerHTML = '<div class="empty-state">No tasks configured. Go to Admin tab to add tasks.</div>';
+        container.innerHTML = '<div class="empty-state">No tasks configured. Use the Admin Panel to create templates.</div>';
         return;
       }
 
@@ -265,7 +354,7 @@
                    onchange="toggleTaskCompletion('${task.id}', this.checked)">
             <div>
               <div class="task-title">${escapeHtml(task.title)}</div>
-              ${isCompleted ? `<div class="task-meta">Completed by <strong>${escapeHtml(logEntry.operator)}</strong> at ${logEntry.time}</div>` : ''}
+              ${isCompleted ? `<div class="task-meta">Status: <strong>COMPLETE</strong> — Operator: <strong>${escapeHtml(logEntry.operator)}</strong> @ ${logEntry.time}</div>` : `<div class="task-meta" style="color: #BBBBBB;">Pending...</div>`}
             </div>
           </div>
         `;
@@ -278,13 +367,13 @@
       const operator = document.getElementById('operator-name').value.trim();
 
       if (isChecked && !operator) {
-        alert('Please enter an Operator Name before completing tasks.');
+        alert('Required: Operator Name is needed before signing off tasks.');
         renderChecklist();
         return;
       }
 
       if (isChecked) {
-        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
         const task = tasks.find(t => t.id === taskId);
         logs.push({
           taskId,
@@ -319,7 +408,7 @@
     }
 
     function deleteTaskTemplate(taskId) {
-      if (confirm('Delete this task template?')) {
+      if (confirm('Are you sure you want to delete this master task template? (Existing history logs will remain).')) {
         tasks = tasks.filter(t => t.id !== taskId);
         saveTasks();
         renderAdmin();
@@ -331,16 +420,17 @@
       container.innerHTML = '';
 
       if (tasks.length === 0) {
-        container.innerHTML = '<div class="empty-state">No master task templates created yet.</div>';
+        container.innerHTML = '<div class="empty-state">No master task templates exist.</div>';
         return;
       }
 
       tasks.forEach(task => {
         const item = document.createElement('div');
         item.className = 'task-card';
+        item.style.padding = '12px 18px';
         item.innerHTML = `
-          <span class="task-title">${escapeHtml(task.title)}</span>
-          <button class="btn btn-danger" onclick="deleteTaskTemplate('${task.id}')">Delete</button>
+          <span class="task-title" style="font-size: 1rem;">${escapeHtml(task.title)}</span>
+          <button class="btn btn-danger nav-btn" style="padding: 8px 16px; font-size: 0.85rem;" onclick="deleteTaskTemplate('${task.id}')">Delete Template</button>
         `;
         container.appendChild(item);
       });
@@ -351,7 +441,7 @@
       tbody.innerHTML = '';
 
       if (logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No completion history recorded yet.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No completion history recorded.</td></tr>';
         return;
       }
 
@@ -360,8 +450,8 @@
       sortedLogs.forEach(log => {
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${log.date}</td>
-          <td>${escapeHtml(log.taskTitle)}</td>
+          <td style="font-weight: 600;">${log.date}</td>
+          <td style="color: #111;">${escapeHtml(log.taskTitle)}</td>
           <td>${escapeHtml(log.operator)}</td>
           <td>${log.time}</td>
         `;
@@ -369,15 +459,13 @@
       });
     }
 
-    /* --- EXPORT TO CSV FUNCTION --- */
     function exportToCSV() {
       if (logs.length === 0) {
-        alert('No history logs available to export.');
+        alert('Notice: No history logs exist to export.');
         return;
       }
 
-      // Prepare headers & data
-      const headers = ['Date', 'Task Description', 'Completed By', 'Time Completed'];
+      const headers = ['Date', 'Task Description', 'Operator Name/ID', 'Time (24h)'];
       const sortedLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
 
       const rows = sortedLogs.map(log => [
@@ -390,11 +478,10 @@
       const csvContent = 'data:text/csv;charset=utf-8,' 
         + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
 
-      // Trigger download
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `daily_checklist_history_${new Date().toISOString().slice(0, 10)}.csv`);
+      link.setAttribute('download', `Albioma_DailyChecks_Export_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
