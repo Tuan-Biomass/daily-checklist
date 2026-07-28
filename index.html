@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Daily Operations Checklist</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #16a34a;
+      --danger: #dc2626;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 16px; max-width: 800px; margin: 0 auto; }
+
+    header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 2px solid var(--border); margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+    h1 { font-size: 1.4rem; color: var(--text); }
+
+    nav { display: flex; gap: 8px; }
+    .nav-btn { background: #e2e8f0; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; cursor: pointer; color: var(--text-muted); }
+    .nav-btn.active { background: var(--primary); color: white; }
+
+    .panel { display: none; background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .panel.active { display: block; }
+
+    .form-group { margin-bottom: 16px; }
+    label { display: block; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+    input[type="text"], input[type="password"], input[type="date"], select { width: 100%; padding: 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; outline: none; }
+    input:focus, select:focus { border-color: var(--primary); }
+
+    .btn { background: var(--primary); color: white; border: none; padding: 10px 18px; border-radius: 6px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-success { background: var(--success); }
+    .btn-success:hover { background: #15803d; }
+
+    .top-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+    .top-bar > div { flex: 1; min-width: 180px; }
+
+    .task-card { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; transition: all 0.2s; }
+    .task-card.completed { background-color: #f0fdf4; border-color: #bbf7d0; }
+    .task-info { display: flex; align-items: center; gap: 12px; }
+    .task-checkbox { width: 20px; height: 20px; cursor: pointer; }
+    .task-title { font-size: 1rem; font-weight: 500; }
+    .task-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+
+    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+    th { color: var(--text-muted); font-weight: 600; background: #f1f5f9; }
+
+    .empty-state { text-align: center; color: var(--text-muted); padding: 30px 10px; }
+    
+    .pin-auth-container { text-align: center; padding: 30px 10px; max-width: 320px; margin: 0 auto; }
+    .pin-auth-container input { text-align: center; letter-spacing: 4px; font-size: 1.2rem; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Daily Checklist</h1>
+    <nav>
+      <button class="nav-btn active" onclick="switchTab('checklist')">Checklist</button>
+      <button class="nav-btn" onclick="switchTab('admin')">Admin</button>
+      <button class="nav-btn" onclick="switchTab('history')">History Log</button>
+    </nav>
+  </header>
+
+  <!-- CHECKLIST TAB -->
+  <section id="checklist" class="panel active">
+    <div class="top-bar">
+      <div>
+        <label for="check-date">Select Date</label>
+        <input type="date" id="check-date" onchange="renderChecklist()" />
+      </div>
+      <div>
+        <label for="operator-name">Current Operator</label>
+        <input type="text" id="operator-name" placeholder="Enter your name or ID" oninput="saveOperatorPreference()" />
+      </div>
+    </div>
+
+    <div id="checklist-container"></div>
+  </section>
+
+  <!-- ADMIN TAB -->
+  <section id="admin" class="panel">
+    <!-- PIN Verification Screen -->
+    <div id="admin-lock" class="pin-auth-container">
+      <h2 style="font-size: 1.1rem; margin-bottom: 10px;">Admin Access Required</h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">Enter 4-digit PIN to access task management.</p>
+      <input type="password" id="pin-input" maxlength="8" placeholder="••••" />
+      <button class="btn" style="width: 100%; justify-content: center;" onclick="verifyPin()">Unlock Admin</button>
+      <p id="pin-error" style="color: var(--danger); font-size: 0.8rem; margin-top: 10px; display: none;">Incorrect PIN. Default is 1234.</p>
+    </div>
+
+    <!-- Admin Content Screen (Hidden until authenticated) -->
+    <div id="admin-content" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h2 style="font-size: 1.1rem;">Task Management</h2>
+        <button class="nav-btn" onclick="lockAdmin()">Lock Panel</button>
+      </div>
+
+      <div class="form-group">
+        <label for="new-task-title">Task Description</label>
+        <input type="text" id="new-task-title" placeholder="e.g. Inspect fluid levels & equipment" />
+      </div>
+      <button class="btn" onclick="addTaskTemplate()">Add Task</button>
+
+      <h3 style="font-size: 0.95rem; margin: 24px 0 12px; color: var(--text-muted);">Master Task Templates</h3>
+      <div id="admin-task-list"></div>
+
+      <hr style="border: 0; border-top: 1px solid var(--border); margin: 24px 0;" />
+
+      <h3 style="font-size: 0.95rem; margin-bottom: 12px; color: var(--text-muted);">Admin Security</h3>
+      <div class="form-group" style="max-width: 250px;">
+        <label for="new-pin">Change Admin PIN</label>
+        <input type="password" id="new-pin" placeholder="Enter new PIN" />
+      </div>
+      <button class="btn" onclick="changePin()">Update PIN</button>
+    </div>
+  </section>
+
+  <!-- HISTORY LOG TAB -->
+  <section id="history" class="panel">
+    <div class="history-header">
+      <h2 style="font-size: 1.1rem;">Completion Log</h2>
+      <button class="btn btn-success" onclick="exportToCSV()">Export to CSV</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Task</th>
+          <th>Completed By</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody id="history-table-body"></tbody>
+    </table>
+  </section>
+
+  <script>
+    // LocalStorage Keys
+    const TASKS_KEY = 'daily_app_tasks';
+    const LOGS_KEY = 'daily_app_logs';
+    const OPERATOR_KEY = 'daily_app_operator';
+    const PIN_KEY = 'daily_app_pin';
+
+    // State Initialization
+    let isAdminUnlocked = false;
+    let adminPin = localStorage.getItem(PIN_KEY) || '1234'; // Default PIN: 1234
+    
+    let tasks = JSON.parse(localStorage.getItem(TASKS_KEY)) || [
+      { id: '1', title: 'Start-of-day safety inspection' },
+      { id: '2', title: 'Check equipment fluid levels' },
+      { id: '3', title: 'End-of-shift site clean up' }
+    ];
+    let logs = JSON.parse(localStorage.getItem(LOGS_KEY)) || [];
+
+    document.getElementById('check-date').valueAsDate = new Date();
+    document.getElementById('operator-name').value = localStorage.getItem(OPERATOR_KEY) || '';
+
+    // Initialize App
+    saveTasks();
+    renderChecklist();
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      
+      document.getElementById(tabId).classList.add('active');
+      event.target.classList.add('active');
+
+      if (tabId === 'checklist') renderChecklist();
+      if (tabId === 'admin') renderAdminState();
+      if (tabId === 'history') renderHistory();
+    }
+
+    /* --- PIN AUTHENTICATION --- */
+    function verifyPin() {
+      const input = document.getElementById('pin-input').value;
+      if (input === adminPin) {
+        isAdminUnlocked = true;
+        document.getElementById('pin-error').style.display = 'none';
+        document.getElementById('pin-input').value = '';
+        renderAdminState();
+      } else {
+        document.getElementById('pin-error').style.display = 'block';
+      }
+    }
+
+    function lockAdmin() {
+      isAdminUnlocked = false;
+      renderAdminState();
+    }
+
+    function changePin() {
+      const newPinInput = document.getElementById('new-pin').value.trim();
+      if (!newPinInput) {
+        alert('Please enter a valid PIN.');
+        return;
+      }
+      adminPin = newPinInput;
+      localStorage.setItem(PIN_KEY, adminPin);
+      document.getElementById('new-pin').value = '';
+      alert('Admin PIN updated successfully.');
+    }
+
+    function renderAdminState() {
+      const lockView = document.getElementById('admin-lock');
+      const contentView = document.getElementById('admin-content');
+
+      if (isAdminUnlocked) {
+        lockView.style.display = 'none';
+        contentView.style.display = 'block';
+        renderAdmin();
+      } else {
+        lockView.style.display = 'block';
+        contentView.style.display = 'none';
+      }
+    }
+
+    /* --- DATA STORAGE & LOGIC --- */
+    function saveOperatorPreference() {
+      const op = document.getElementById('operator-name').value;
+      localStorage.setItem(OPERATOR_KEY, op);
+    }
+
+    function saveTasks() {
+      localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+    }
+
+    function saveLogs() {
+      localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
+    }
+
+    function renderChecklist() {
+      const selectedDate = document.getElementById('check-date').value;
+      const container = document.getElementById('checklist-container');
+      container.innerHTML = '';
+
+      if (tasks.length === 0) {
+        container.innerHTML = '<div class="empty-state">No tasks configured. Go to Admin tab to add tasks.</div>';
+        return;
+      }
+
+      tasks.forEach(task => {
+        const logEntry = logs.find(l => l.taskId === task.id && l.date === selectedDate);
+        const isCompleted = !!logEntry;
+
+        const card = document.createElement('div');
+        card.className = `task-card ${isCompleted ? 'completed' : ''}`;
+        card.innerHTML = `
+          <div class="task-info">
+            <input type="checkbox" class="task-checkbox" ${isCompleted ? 'checked' : ''} 
+                   onchange="toggleTaskCompletion('${task.id}', this.checked)">
+            <div>
+              <div class="task-title">${escapeHtml(task.title)}</div>
+              ${isCompleted ? `<div class="task-meta">Completed by <strong>${escapeHtml(logEntry.operator)}</strong> at ${logEntry.time}</div>` : ''}
+            </div>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function toggleTaskCompletion(taskId, isChecked) {
+      const date = document.getElementById('check-date').value;
+      const operator = document.getElementById('operator-name').value.trim();
+
+      if (isChecked && !operator) {
+        alert('Please enter an Operator Name before completing tasks.');
+        renderChecklist();
+        return;
+      }
+
+      if (isChecked) {
+        const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const task = tasks.find(t => t.id === taskId);
+        logs.push({
+          taskId,
+          taskTitle: task ? task.title : 'Deleted Task',
+          date,
+          operator,
+          time
+        });
+      } else {
+        logs = logs.filter(l => !(l.taskId === taskId && l.date === date));
+      }
+
+      saveLogs();
+      renderChecklist();
+    }
+
+    function addTaskTemplate() {
+      const input = document.getElementById('new-task-title');
+      const title = input.value.trim();
+
+      if (!title) return;
+
+      const newTask = {
+        id: Date.now().toString(),
+        title
+      };
+
+      tasks.push(newTask);
+      saveTasks();
+      input.value = '';
+      renderAdmin();
+    }
+
+    function deleteTaskTemplate(taskId) {
+      if (confirm('Delete this task template?')) {
+        tasks = tasks.filter(t => t.id !== taskId);
+        saveTasks();
+        renderAdmin();
+      }
+    }
+
+    function renderAdmin() {
+      const container = document.getElementById('admin-task-list');
+      container.innerHTML = '';
+
+      if (tasks.length === 0) {
+        container.innerHTML = '<div class="empty-state">No master task templates created yet.</div>';
+        return;
+      }
+
+      tasks.forEach(task => {
+        const item = document.createElement('div');
+        item.className = 'task-card';
+        item.innerHTML = `
+          <span class="task-title">${escapeHtml(task.title)}</span>
+          <button class="btn btn-danger" onclick="deleteTaskTemplate('${task.id}')">Delete</button>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function renderHistory() {
+      const tbody = document.getElementById('history-table-body');
+      tbody.innerHTML = '';
+
+      if (logs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">No completion history recorded yet.</td></tr>';
+        return;
+      }
+
+      const sortedLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
+
+      sortedLogs.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${log.date}</td>
+          <td>${escapeHtml(log.taskTitle)}</td>
+          <td>${escapeHtml(log.operator)}</td>
+          <td>${log.time}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* --- EXPORT TO CSV FUNCTION --- */
+    function exportToCSV() {
+      if (logs.length === 0) {
+        alert('No history logs available to export.');
+        return;
+      }
+
+      // Prepare headers & data
+      const headers = ['Date', 'Task Description', 'Completed By', 'Time Completed'];
+      const sortedLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
+
+      const rows = sortedLogs.map(log => [
+        `"${log.date}"`,
+        `"${log.taskTitle.replace(/"/g, '""')}"`,
+        `"${log.operator.replace(/"/g, '""')}"`,
+        `"${log.time}"`
+      ]);
+
+      const csvContent = 'data:text/csv;charset=utf-8,' 
+        + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+
+      // Trigger download
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', `daily_checklist_history_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
+    }
+  </script>
+</body>
+</html>
