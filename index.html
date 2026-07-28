@@ -91,6 +91,20 @@
     .top-bar { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; background-color: #F0F7F0; border-radius: 10px; padding: 15px; border: 1px solid #E3ECE3;}
     .top-bar > div { flex: 1; min-width: 180px; }
 
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--albioma-green-dark);
+      background-color: #EEF7EE;
+      padding: 10px 16px;
+      border-radius: 8px;
+      margin: 24px 0 12px 0;
+      border-left: 5px solid var(--albioma-green-mid);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .section-title:first-of-type { margin-top: 10px; }
+
     .task-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; background: white; padding: 16px 20px; transition: all 0.2s; }
     .task-card.passed { background-color: var(--success-bg); border-color: #bbf7d0; border-left-width: 6px; border-left-color: var(--success); }
     .task-card.failed { background-color: var(--danger-bg); border-color: #fecaca; border-left-width: 6px; border-left-color: var(--danger); }
@@ -167,6 +181,7 @@
         <thead>
           <tr>
             <th>Date</th>
+            <th>Section</th>
             <th>Task Description</th>
             <th>Status</th>
             <th>Operator</th>
@@ -184,22 +199,46 @@
     const LOGS_KEY = 'albioma_checklist_logs_v3';
     const OPERATOR_KEY = 'albioma_checklist_operator_v3';
 
-    /* MASTER TASK TEMPLATES - HARDCODED DIRECTLY FOR GITHUB HOSTING */
-    const tasks = [
-      { id: '1', title: 'Purge Mills with 200 pumps each @ 9 AM' },
-      { id: '2', title: 'Purge Mills with 200 pumps each @ 3 PM' },
-      { id: '3', title: 'Purge Mills with 200 pumps each @ 9 PM' },
-      { id: '4', title: 'Purge Mills with 200 pumps each @ 3 AM' },
-      { id: '5', title: 'Clean Shavings Diverters And Transition Chute SAT NIGHT' },
-      { id: '6', title: 'Check Grecon is "OK"' },
-      { id: '7', title: 'Check Grecon Tank level is on "Operational Level"' },
-      { id: '8', title: 'Inspect & Clean Steam Vent @ 530 PM' },
-      { id: '9', title: 'Inspect & Clean Steam Vent @ 530 AM' },
-      { id: '10', title: 'Empty Drop Box' },
-      { id: '11', title: 'Check that Water Sprayers are Functioning Correctly' },
-      { id: '12', title: 'Empty ALL Bins And Wheel Barrows' },
-      { id: '13', title: 'Check Drinking Water Tank Level Once A Week' }
+    /* MASTER TASK TEMPLATES GROUPED BY SECTIONS */
+    const sections = [
+      {
+        category: 'Before Start Up',
+        tasks: [
+          { id: '6', title: 'Check Grecon is "OK"' },
+          { id: '7', title: 'Check Grecon Tank level is on "Operational Level"' },
+          { id: '11', title: 'Check that Water Sprayers are Functioning Correctly' }
+        ]
+      },
+      {
+        category: 'During Production',
+        tasks: [
+          { id: '1', title: 'Purge Mills with 200 pumps each @ 9 AM' },
+          { id: '2', title: 'Purge Mills with 200 pumps each @ 3 PM' },
+          { id: '3', title: 'Purge Mills with 200 pumps each @ 9 PM' },
+          { id: '4', title: 'Purge Mills with 200 pumps each @ 3 AM' },
+          { id: '8', title: 'Inspect & Clean Steam Vent @ 530 PM' },
+          { id: '9', title: 'Inspect & Clean Steam Vent @ 530 AM' },
+          { id: '10', title: 'Empty Drop Box' }
+          
+        ]
+      },
+      {
+        category: 'Once Per Week',
+        tasks: [
+          { id: '5', title: 'Clean Shavings Diverters And Transition Chute SAT NIGHT' },
+          { id: '13', title: 'Check Drinking Water Tank Level Once A Week' },
+          { id: '12', title: 'Empty ALL Bins And Wheel Barrows' }
+        ]
+      }
     ];
+
+    // Helper map to quickly find tasks by ID
+    const allTasksMap = {};
+    sections.forEach(sec => {
+      sec.tasks.forEach(t => {
+        allTasksMap[t.id] = { ...t, category: sec.category };
+      });
+    });
 
     let logs = JSON.parse(localStorage.getItem(LOGS_KEY)) || [];
 
@@ -233,60 +272,62 @@
       const container = document.getElementById('checklist-container');
       container.innerHTML = '';
 
-      if (tasks.length === 0) {
-        container.innerHTML = '<div class="empty-state">No tasks configured in HTML code.</div>';
-        return;
-      }
+      sections.forEach(section => {
+        const sectionHeader = document.createElement('h2');
+        sectionHeader.className = 'section-title';
+        sectionHeader.textContent = section.category;
+        container.appendChild(sectionHeader);
 
-      tasks.forEach(task => {
-        const logEntry = logs.find(l => l.taskId === task.id && l.date === selectedDate);
-        const hasLogged = !!logEntry;
-        const status = hasLogged ? logEntry.status : null;
+        section.tasks.forEach(task => {
+          const logEntry = logs.find(l => l.taskId === task.id && l.date === selectedDate);
+          const hasLogged = !!logEntry;
+          const status = hasLogged ? logEntry.status : null;
 
-        const card = document.createElement('div');
-        card.className = `task-card ${status === 'Pass' ? 'passed' : status === 'Fail' ? 'failed' : ''}`;
-        
-        let actionsHtml = '';
-        if (!hasLogged) {
-          actionsHtml = `
-            <div class="task-actions" id="actions-${task.id}">
-              <button class="btn btn-outline-pass" onclick="recordTask('${task.id}', 'Pass')">✓ Pass</button>
-              <button class="btn btn-outline-fail" onclick="toggleFailDrawer('${task.id}')">✗ Fail</button>
+          const card = document.createElement('div');
+          card.className = `task-card ${status === 'Pass' ? 'passed' : status === 'Fail' ? 'failed' : ''}`;
+          
+          let actionsHtml = '';
+          if (!hasLogged) {
+            actionsHtml = `
+              <div class="task-actions" id="actions-${task.id}">
+                <button class="btn btn-outline-pass" onclick="recordTask('${task.id}', 'Pass')">✓ Pass</button>
+                <button class="btn btn-outline-fail" onclick="toggleFailDrawer('${task.id}')">✗ Fail</button>
+              </div>
+            `;
+          } else {
+            actionsHtml = `
+              <div class="task-actions">
+                <span class="badge ${status === 'Pass' ? 'badge-pass' : 'badge-fail'}">${status}</span>
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="resetTask('${task.id}')">Change</button>
+              </div>
+            `;
+          }
+
+          let metaHtml = '';
+          if (hasLogged) {
+            metaHtml = `<div class="task-meta">Operator: <strong>${escapeHtml(logEntry.operator)}</strong> @ ${logEntry.time} ${logEntry.comment ? `<br>Comment: <em>${escapeHtml(logEntry.comment)}</em>` : ''}</div>`;
+          } else {
+            metaHtml = `<div class="task-meta" style="color: #999;">Pending evaluation...</div>`;
+          }
+
+          card.innerHTML = `
+            <div class="task-row">
+              <div class="task-info">
+                <div class="task-title">${escapeHtml(task.title)}</div>
+                ${metaHtml}
+              </div>
+              ${actionsHtml}
+            </div>
+            <div class="fail-drawer" id="fail-drawer-${task.id}">
+              <textarea id="fail-comment-${task.id}" placeholder="Mandatory: Enter explanation/comment for this failure..."></textarea>
+              <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="toggleFailDrawer('${task.id}')">Cancel</button>
+                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;" onclick="submitFailTask('${task.id}')">Submit Failure</button>
+              </div>
             </div>
           `;
-        } else {
-          actionsHtml = `
-            <div class="task-actions">
-              <span class="badge ${status === 'Pass' ? 'badge-pass' : 'badge-fail'}">${status}</span>
-              <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="resetTask('${task.id}')">Change</button>
-            </div>
-          `;
-        }
-
-        let metaHtml = '';
-        if (hasLogged) {
-          metaHtml = `<div class="task-meta">Operator: <strong>${escapeHtml(logEntry.operator)}</strong> @ ${logEntry.time} ${logEntry.comment ? `<br>Comment: <em>${escapeHtml(logEntry.comment)}</em>` : ''}</div>`;
-        } else {
-          metaHtml = `<div class="task-meta" style="color: #999;">Pending evaluation...</div>`;
-        }
-
-        card.innerHTML = `
-          <div class="task-row">
-            <div class="task-info">
-              <div class="task-title">${escapeHtml(task.title)}</div>
-              ${metaHtml}
-            </div>
-            ${actionsHtml}
-          </div>
-          <div class="fail-drawer" id="fail-drawer-${task.id}">
-            <textarea id="fail-comment-${task.id}" placeholder="Mandatory: Enter explanation/comment for this failure..."></textarea>
-            <div style="display: flex; gap: 8px; justify-content: flex-end;">
-              <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="toggleFailDrawer('${task.id}')">Cancel</button>
-              <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;" onclick="submitFailTask('${task.id}')">Submit Failure</button>
-            </div>
-          </div>
-        `;
-        container.appendChild(card);
+          container.appendChild(card);
+        });
       });
     }
 
@@ -300,13 +341,14 @@
       }
 
       const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-      const task = tasks.find(t => t.id === taskId);
+      const taskObj = allTasksMap[taskId];
 
       logs = logs.filter(l => !(l.taskId === taskId && l.date === date));
 
       logs.push({
         taskId,
-        taskTitle: task ? task.title : 'Deleted Task',
+        taskTitle: taskObj ? taskObj.title : 'Task',
+        category: taskObj ? taskObj.category : 'General',
         date,
         operator,
         time,
@@ -360,7 +402,7 @@
       tbody.innerHTML = '';
 
       if (logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No completion history recorded.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No completion history recorded.</td></tr>';
         return;
       }
 
@@ -371,6 +413,7 @@
         const badgeClass = log.status === 'Pass' ? 'badge-pass' : 'badge-fail';
         tr.innerHTML = `
           <td style="font-weight: 600;">${log.date}</td>
+          <td style="color: var(--text-muted); font-size: 0.85rem;">${escapeHtml(log.category || '-')}</td>
           <td style="color: #111;">${escapeHtml(log.taskTitle)}</td>
           <td><span class="badge ${badgeClass}">${log.status}</span></td>
           <td>${escapeHtml(log.operator)}</td>
@@ -387,11 +430,12 @@
         return;
       }
 
-      const headers = ['Date', 'Task Description', 'Status', 'Operator Name/ID', 'Time (24h)', 'Comment'];
+      const headers = ['Date', 'Section', 'Task Description', 'Status', 'Operator Name/ID', 'Time (24h)', 'Comment'];
       const sortedLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
 
       const rows = sortedLogs.map(log => [
         `"${log.date}"`,
+        `"${(log.category || '').replace(/"/g, '""')}"`,
         `"${log.taskTitle.replace(/"/g, '""')}"`,
         `"${log.status}"`,
         `"${log.operator.replace(/"/g, '""')}"`,
