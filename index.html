@@ -13,7 +13,10 @@
     --line:#c8cdc4;
     --accent:#3a6351;
     --accent-dim:#e4ece7;
+    --accent-soft:#f3f7f5;
     --warn:#a4462c;
+    --shadow: 0 1px 2px rgba(28,35,33,0.04), 0 4px 14px rgba(28,35,33,0.05);
+    --shadow-hover: 0 2px 6px rgba(28,35,33,0.06), 0 8px 22px rgba(28,35,33,0.08);
     --mono: 'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
     --sans: 'IBM Plex Sans',-apple-system,Segoe UI,sans-serif;
   }
@@ -21,7 +24,9 @@
   *{box-sizing:border-box;}
   body{
     margin:0;
-    background:var(--paper);
+    background:
+      radial-gradient(circle at 15% 0%, rgba(58,99,81,0.06), transparent 45%),
+      var(--paper);
     color:var(--ink);
     font-family:var(--sans);
     padding:32px 16px 80px;
@@ -61,30 +66,37 @@
   }
   .operator-row{
     display:grid;
-    grid-template-columns:2fr 1fr 1fr;
-    gap:12px;
+    grid-template-columns:2fr 1fr;
+    gap:14px;
     background:var(--panel);
     border:1px solid var(--line);
-    border-radius:4px;
-    padding:14px 18px;
+    border-radius:10px;
+    padding:16px 20px;
     margin-bottom:24px;
+    box-shadow:var(--shadow);
   }
   .operator-row label{
     display:block;
     font-family:var(--mono);
     font-size:0.72rem;
     color:#666;
-    margin-bottom:4px;
+    margin-bottom:5px;
     text-transform:uppercase;
     letter-spacing:0.05em;
   }
   .operator-row input{
     width:100%;
-    padding:8px 10px;
+    padding:9px 11px;
     border:1px solid var(--line);
-    border-radius:4px;
+    border-radius:6px;
     font-family:var(--sans);
     font-size:0.9rem;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .operator-row input:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-dim);
   }
   .operator-row input:read-only{
     background:#f3f4f1;
@@ -96,9 +108,10 @@
     .operator-row{grid-template-columns:1fr;}
   }
   h1{
-    font-size:1.6rem;
+    font-size:1.7rem;
     margin:0;
     letter-spacing:-0.02em;
+    font-weight:700;
   }
   .tag{
     font-family:var(--mono);
@@ -117,18 +130,22 @@
     background:var(--panel);
     border:1px solid var(--line);
     border-left:4px solid var(--accent);
-    border-radius:4px;
-    margin-bottom:20px;
+    border-radius:10px;
+    margin-bottom:18px;
     overflow:hidden;
+    box-shadow:var(--shadow);
+    transition:box-shadow .18s ease, border-left-color .18s ease;
   }
+  section.block:hover{box-shadow:var(--shadow-hover);}
   section.block.done{border-left-color:#8aa89b;}
   .block-head{
     display:flex;
     align-items:center;
     justify-content:space-between;
-    padding:14px 18px;
+    padding:15px 20px;
     cursor:pointer;
     user-select:none;
+    background:linear-gradient(180deg, rgba(58,99,81,0.035), transparent);
   }
   .block-head h2{
     font-size:1rem;
@@ -136,28 +153,37 @@
     display:flex;
     align-items:center;
     gap:10px;
+    font-weight:600;
   }
   .count{
     font-family:var(--mono);
     font-size:0.75rem;
     color:#777;
+    background:var(--accent-soft);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:3px 10px;
+    white-space:nowrap;
   }
-  .items{padding:0 18px 16px;}
+  section.block.done .count{
+    background:var(--accent-dim);
+    color:var(--accent);
+    border-color:var(--accent);
+  }
+  .items{padding:2px 20px 18px;}
   label.item{
     display:flex;
     align-items:flex-start;
     gap:10px;
-    padding:9px 0;
-    border-top:1px solid #eee;
     font-size:0.95rem;
     cursor:pointer;
   }
-  label.item:first-child{border-top:none;}
   label.item input{
     margin-top:3px;
-    width:17px;height:17px;
+    width:18px;height:18px;
     accent-color:var(--accent);
     flex-shrink:0;
+    cursor:pointer;
   }
   label.item span.checked-text{
     text-decoration:line-through;
@@ -166,8 +192,8 @@
   .item-row{
     display:flex;
     flex-direction:column;
-    gap:6px;
-    padding:9px 0;
+    gap:8px;
+    padding:12px 0;
     border-top:1px solid #eee;
   }
   .item-row:first-child{border-top:none;}
@@ -175,27 +201,74 @@
     padding:0;
     border-top:none;
   }
-  .item-comment{
-    margin-left:27px;
-    width:calc(100% - 27px);
-    padding:6px 9px;
+  .item-meta{
+    display:flex;
+    gap:8px;
+    margin-left:28px;
+  }
+  .item-time-wrap{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background:var(--accent-soft);
     border:1px solid var(--line);
-    border-radius:4px;
+    border-radius:6px;
+    padding:0 8px 0 9px;
+    flex-shrink:0;
+  }
+  .item-time-wrap svg{flex-shrink:0;color:var(--accent);opacity:0.75;}
+  .item-time{
+    border:none;
+    background:transparent;
+    padding:6px 2px;
+    font-family:var(--mono);
+    font-size:0.8rem;
+    color:var(--ink);
+    width:96px;
+  }
+  .item-time:focus{outline:none;}
+  .item-time-wrap:focus-within{
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-dim);
+  }
+  .item-comment{
+    flex:1;
+    min-width:0;
+    padding:7px 10px;
+    border:1px solid var(--line);
+    border-radius:6px;
     font-family:var(--sans);
     font-size:0.82rem;
     color:#444;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .item-comment:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-dim);
   }
   .item-comment::placeholder{color:#aaa;}
+  @media (max-width:460px){
+    .item-meta{flex-direction:column;margin-left:0;}
+    .item-time-wrap{align-self:flex-start;}
+  }
   .notes{
     width:100%;
     margin-top:10px;
     border:1px solid var(--line);
-    border-radius:4px;
+    border-radius:8px;
     font-family:var(--sans);
-    font-size:0.85rem;
-    padding:8px 10px;
+    font-size:0.88rem;
+    padding:12px 14px;
     resize:vertical;
-    min-height:44px;
+    min-height:52px;
+    box-shadow:var(--shadow);
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .notes:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-dim);
   }
   .actions{
     display:flex;
@@ -208,14 +281,16 @@
     font-weight:600;
     font-size:0.9rem;
     border:none;
-    border-radius:4px;
-    padding:12px 20px;
+    border-radius:7px;
+    padding:12px 22px;
     cursor:pointer;
+    transition:background .15s ease, border-color .15s ease, transform .1s ease;
   }
-  .btn-primary{background:var(--accent);color:#fff;}
+  button:active{transform:translateY(1px);}
+  .btn-primary{background:var(--accent);color:#fff;box-shadow:var(--shadow);}
   .btn-primary:hover{background:#2c4d40;}
-  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
-  .btn-ghost:hover{border-color:var(--accent);}
+  .btn-ghost{background:var(--panel);border:1px solid var(--line);color:var(--ink);}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
   .btn-primary:disabled{background:#a9b8b1;cursor:not-allowed;}
   #status{
     font-family:var(--mono);
@@ -228,9 +303,10 @@
   .settings{
     background:var(--panel);
     border:1px solid var(--line);
-    border-radius:4px;
-    padding:16px 18px;
+    border-radius:10px;
+    padding:16px 20px;
     margin-bottom:24px;
+    box-shadow:var(--shadow);
   }
   .settings summary{
     cursor:pointer;
@@ -258,9 +334,15 @@
     width:100%;
     padding:8px 10px;
     border:1px solid var(--line);
-    border-radius:4px;
+    border-radius:6px;
     font-family:var(--mono);
     font-size:0.85rem;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .settings-grid input:focus{
+    outline:none;
+    border-color:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-dim);
   }
   @media (max-width:520px){
     .settings-grid{grid-template-columns:1fr;}
@@ -295,10 +377,6 @@
     <div>
       <label>Date</label>
       <input type="text" id="operatorDate" readonly>
-    </div>
-    <div>
-      <label>Time completed</label>
-      <input type="text" id="operatorTime" readonly>
     </div>
   </div>
 
@@ -350,9 +428,9 @@
       <span class="count">0 / 5</span>
     </div>
     <div class="items">
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon is OK</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon Tank is On "operational Level</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Water Sprayers are Functioning Correctly</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon is OK</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon Tank is On "operational Level</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Water Sprayers are Functioning Correctly</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
     </div>
   </section>
 
@@ -362,14 +440,14 @@
       <span class="count">0 / 5</span>
     </div>
     <div class="items">
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Mill Adjustment Sheet is Up to Date</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 9 AM</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 3 PM</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 9 PM</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 3 AM</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect & Clean Steam Vent @ 530 PM</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect & Clean Steam Vent @ 530 AM</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty Drop Box At End of Shift</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div> 
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Mill Adjustment Sheet is Up to Date</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 9 AM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 3 PM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 9 PM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 3 AM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect & Clean Steam Vent @ 530 PM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect & Clean Steam Vent @ 530 AM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty Drop Box At End of Shift</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div> 
     </div>
   </section>
 
@@ -379,10 +457,10 @@
       <span class="count">0 / 5</span>
     </div>
     <div class="items">
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Deep Clean Around Mills </span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Clean Diverters / Shavings 1 into 2 Transition</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Dinking Water Tank Level</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty All Bins And Wheel Barrows</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Deep Clean Around Mills </span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Clean Diverters / Shavings 1 into 2 Transition</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Dinking Water Tank Level</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty All Bins And Wheel Barrows</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
     </div>
   </section>
 
@@ -402,7 +480,6 @@ function tick(){
   const now = new Date();
   document.getElementById('clock').textContent = now.toLocaleString();
   document.getElementById('operatorDate').value = now.toISOString().slice(0,10);
-  document.getElementById('operatorTime').value = now.toTimeString().slice(0,8);
 }
 tick(); setInterval(tick, 1000);
 
@@ -522,6 +599,7 @@ document.getElementById('resetBtn').addEventListener('click', ()=>{
     b.closest('.item').querySelector('span').classList.remove('checked-text');
   });
   document.querySelectorAll('.item-comment').forEach(c=> c.value = '');
+  document.querySelectorAll('.item-time').forEach(t=> t.value = '');
   document.getElementById('sessionNotes').value = '';
   document.getElementById('operatorName').value = '';
   updateCounts();
@@ -538,7 +616,6 @@ function setStatus(msg, cls){
 function gatherRows(){
   const now = new Date();
   const date = now.toISOString().slice(0,10);
-  const time = now.toTimeString().slice(0,8);
   const operator = document.getElementById('operatorName').value.trim() || '(not entered)';
   const sessionNotes = document.getElementById('sessionNotes').value.trim();
   const rows = [];
@@ -548,6 +625,7 @@ function gatherRows(){
       const input = row.querySelector('input[type=checkbox]');
       const checked = input.checked;
       const text = row.querySelector('.item span').textContent;
+      const time = row.querySelector('.item-time').value.trim() || '(not entered)';
       const comment = row.querySelector('.item-comment').value.trim();
       rows.push([date, time, operator, section, text, checked ? 'Y' : 'N', comment, sessionNotes]);
     });
