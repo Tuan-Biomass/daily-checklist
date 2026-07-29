@@ -48,11 +48,8 @@
     gap:14px;
   }
   .logo-spot{
-    width:52px;
-    height:52px;
-    border:2px dashed var(--accent);
-    border-radius:8px;
-    background:var(--accent-dim);
+    width:76px;
+    height:76px;
     display:flex;
     align-items:center;
     justify-content:center;
@@ -356,7 +353,7 @@
     <div class="brand">
       <div class="logo-spot">
         <img id="appLogo" src="albioma-logo.png" alt="Logo" class="app-logo" onError="this.style.display='none'; document.getElementById('fallbackIcon').style.display='block';" />
-        <svg id="fallbackIcon" viewBox="0 0 48 48" width="32" height="32" style="display:none;">
+        <svg id="fallbackIcon" viewBox="0 0 48 48" width="52" height="52" style="display:none;">
           <circle cx="24" cy="24" r="22" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
           <path d="M14 25l7 7 13-15" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
@@ -383,10 +380,6 @@
   <details class="settings" id="settingsBox">
     <summary>🔒 GitHub & App settings (PIN protected)</summary>
     <div class="settings-grid">
-      <div class="full" style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:4px;">
-        <label for="logoUpload">Custom Header Logo</label>
-        <input type="file" id="logoUpload" accept="image/*" style="font-family:var(--sans);">
-      </div>
       <div class="full">
         <label for="ghToken">Personal Access Token (repo scope)</label>
         <input type="password" id="ghToken" placeholder="ghp_...">
@@ -467,14 +460,31 @@
   <textarea class="notes" id="sessionNotes" placeholder="Optional notes for this session..."></textarea>
 
   <div class="actions">
-    <button class="btn-primary" id="pushBtn">Save & push to GitHub</button>
+    <button class="btn-primary" id="pushBtn">Save & push now</button>
     <button class="btn-ghost" id="resetBtn" type="button">Reset checklist</button>
   </div>
+  <div style="font-family:var(--mono);font-size:0.72rem;color:#888;margin-top:6px;">Changes auto-save to GitHub ~3s after you stop editing.</div>
   <div id="status"></div>
 
 </div>
 
 <script>
+// ---------- session identity (used to update-in-place during autosave) ----------
+// Persisted so a page reload continues the SAME session instead of orphaning
+// the previous session's rows in the log (which was causing duplicates).
+// A new session only starts when "Reset checklist" is clicked.
+function newSessionId(){
+  return 'S-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,7);
+}
+let sessionId = localStorage.getItem('checklist_session_id');
+const today = new Date().toISOString().slice(0,10);
+const storedSessionDate = localStorage.getItem('checklist_session_date');
+if(!sessionId || storedSessionDate !== today){
+  sessionId = newSessionId();
+  localStorage.setItem('checklist_session_id', sessionId);
+  localStorage.setItem('checklist_session_date', today);
+}
+
 // ---------- clock ----------
 function tick(){
   const now = new Date();
@@ -482,32 +492,6 @@ function tick(){
   document.getElementById('operatorDate').value = now.toISOString().slice(0,10);
 }
 tick(); setInterval(tick, 1000);
-
-// ---------- custom logo management ----------
-const appLogo = document.getElementById('appLogo');
-const fallbackIcon = document.getElementById('fallbackIcon');
-const savedLogo = localStorage.getItem('checklist_custom_logo');
-
-if (savedLogo) {
-  appLogo.src = savedLogo;
-  appLogo.style.display = 'block';
-  fallbackIcon.style.display = 'none';
-}
-
-document.getElementById('logoUpload').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (file) {
-    const reader = new FileReader();
-    reader.onload = function(evt) {
-      const dataUrl = evt.target.result;
-      appLogo.src = dataUrl;
-      appLogo.style.display = 'block';
-      fallbackIcon.style.display = 'none';
-      localStorage.setItem('checklist_custom_logo', dataUrl);
-    };
-    reader.readAsDataURL(file);
-  }
-});
 
 // ---------- settings persistence ----------
 const fields = ['ghToken','ghOwner','ghRepo','ghBranch','ghPath'];
@@ -594,6 +578,10 @@ document.querySelectorAll('input[type=checkbox]').forEach(box=>{
 updateCounts();
 
 document.getElementById('resetBtn').addEventListener('click', ()=>{
+  clearTimeout(autoSaveTimer);
+  sessionId = newSessionId();
+  localStorage.setItem('checklist_session_id', sessionId);
+  localStorage.setItem('checklist_session_date', new Date().toISOString().slice(0,10));
   document.querySelectorAll('input[type=checkbox]').forEach(b=>{
     b.checked = false;
     b.closest('.item').querySelector('span').classList.remove('checked-text');
@@ -627,14 +615,18 @@ function gatherRows(){
       const text = row.querySelector('.item span').textContent;
       const time = row.querySelector('.item-time').value.trim() || '(not entered)';
       const comment = row.querySelector('.item-comment').value.trim();
-      rows.push([date, time, operator, section, text, checked ? 'Y' : 'N', comment, sessionNotes]);
+      rows.push([date, time, operator, section, text, checked ? 'Y' : 'N', comment, sessionNotes, sessionId]);
     });
   });
   return rows;
 }
 
 // ---------- GitHub push ----------
-async function pushToGitHub(){
+let pushInFlight = false;
+let rerunAfterPush = false;
+let autoSaveTimer = null;
+
+async function doPush(auto){
   const token = document.getElementById('ghToken').value.trim();
   const owner = document.getElementById('ghOwner').value.trim();
   const repo  = document.getElementById('ghRepo').value.trim();
@@ -642,28 +634,43 @@ async function pushToGitHub(){
   const path  = document.getElementById('ghPath').value.trim() || 'log.xlsx';
 
   if(!token || !owner || !repo){
-    setStatus('Fill in GitHub settings first (token, owner, repo).', 'err');
-    document.getElementById('settingsBox').open = true;
+    if(auto){
+      setStatus('Auto-save waiting: fill in GitHub settings to enable it.', 'err');
+    } else {
+      setStatus('Fill in GitHub settings first (token, owner, repo).', 'err');
+      document.getElementById('settingsBox').open = true;
+    }
     return;
   }
 
   if(!document.getElementById('operatorName').value.trim()){
-    setStatus('Enter the operator name before pushing.', 'err');
-    document.getElementById('operatorName').focus();
+    if(auto){
+      setStatus('Auto-save waiting: enter the operator name.', 'err');
+    } else {
+      setStatus('Enter the operator name before pushing.', 'err');
+      document.getElementById('operatorName').focus();
+    }
     return;
   }
 
-  setStatus('Reading existing log from GitHub...', '');
+  if(pushInFlight){
+    rerunAfterPush = true;
+    return;
+  }
+  pushInFlight = true;
   document.getElementById('pushBtn').disabled = true;
+
+  setStatus(auto ? 'Auto-saving...' : 'Reading existing log from GitHub...', '');
 
   const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
   const headers = {
     'Authorization': `token ${token}`,
     'Accept': 'application/vnd.github+json'
   };
+  const emptyLog = [['Date','Time','Operator','Section','Item','Checked','Item Comment','Session Notes','Session ID']];
 
   try{
-    let existingRows = [['Date','Time','Operator','Section','Item','Checked','Item Comment','Session Notes']];
+    let existingRows = emptyLog;
     let sha = null;
 
     const getResp = await fetch(`${apiBase}?ref=${branch}`, { headers });
@@ -677,16 +684,19 @@ async function pushToGitHub(){
       const ws = wb.Sheets[wb.SheetNames[0]];
       existingRows = XLSX.utils.sheet_to_json(ws, { header:1 });
       if(existingRows.length === 0){
-        existingRows = [['Date','Time','Operator','Section','Item','Checked','Item Comment','Session Notes']];
+        existingRows = emptyLog;
       }
     } else if(getResp.status !== 404){
       const errText = await getResp.text();
       throw new Error(`GitHub read failed (${getResp.status}): ${errText}`);
     }
 
-    setStatus('Building updated log file...', '');
+    // Drop any rows previously auto-saved by this session, so autosave
+    // updates in place instead of piling up duplicate row-sets.
+    const filteredRows = existingRows.filter(row => row[8] !== sessionId);
+
     const newRows = gatherRows();
-    const allRows = existingRows.concat(newRows);
+    const allRows = filteredRows.concat(newRows);
 
     const newWs = XLSX.utils.aoa_to_sheet(allRows);
     const newWb = XLSX.utils.book_new();
@@ -698,9 +708,8 @@ async function pushToGitHub(){
     for(let i=0;i<bytes2.length;i++) binaryStr += String.fromCharCode(bytes2[i]);
     const base64Content = btoa(binaryStr);
 
-    setStatus('Pushing to GitHub...', '');
     const putBody = {
-      message: `Checklist log update ${new Date().toISOString()}`,
+      message: auto ? `Checklist autosave ${new Date().toISOString()}` : `Checklist log update ${new Date().toISOString()}`,
       content: base64Content,
       branch: branch
     };
@@ -717,16 +726,41 @@ async function pushToGitHub(){
       throw new Error(`GitHub write failed (${putResp.status}): ${errText}`);
     }
 
-    setStatus(`Logged ${newRows.length} rows to ${path} on ${branch}.`, 'ok');
+    const stamp = new Date().toLocaleTimeString();
+    setStatus(auto ? `Auto-saved at ${stamp}.` : `Logged ${newRows.length} rows to ${path} on ${branch}.`, 'ok');
   } catch(err){
     console.error(err);
-    setStatus('Error: ' + err.message, 'err');
+    setStatus((auto ? 'Auto-save error: ' : 'Error: ') + err.message, 'err');
   } finally {
     document.getElementById('pushBtn').disabled = false;
+    pushInFlight = false;
+    if(rerunAfterPush){
+      rerunAfterPush = false;
+      scheduleAutoSave();
+    }
   }
 }
 
-document.getElementById('pushBtn').addEventListener('click', pushToGitHub);
+function scheduleAutoSave(){
+  clearTimeout(autoSaveTimer);
+  setStatus('Unsaved changes — auto-saving in a few seconds...', '');
+  autoSaveTimer = setTimeout(()=> doPush(true), 3000);
+}
+
+document.getElementById('pushBtn').addEventListener('click', ()=>{
+  clearTimeout(autoSaveTimer);
+  doPush(false);
+});
+
+// Trigger debounced autosave on any checklist edit
+document.querySelectorAll('input[type=checkbox], .item-time').forEach(el=>{
+  el.addEventListener('change', scheduleAutoSave);
+});
+document.querySelectorAll('.item-comment').forEach(el=>{
+  el.addEventListener('input', scheduleAutoSave);
+});
+document.getElementById('operatorName').addEventListener('input', scheduleAutoSave);
+document.getElementById('sessionNotes').addEventListener('input', scheduleAutoSave);
 </script>
 
 </body>
