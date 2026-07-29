@@ -1,464 +1,618 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ALBIOMA Daily Operations Checklist</title>
-  <style>
-    :root {
-      --albioma-green-dark: #2A7218;
-      --albioma-green-mid: #52AA14;
-      --albioma-green-light: #98D066;
-      --bg-main: #FFFFFF;
-      --bg-section: #F8FAF7;
-      --text-dark: #333333;
-      --text-muted: #666666;
-      --border: #DAE6DA;
-      --success: #52AA14;
-      --success-bg: #F0FDF4;
-      --danger: #D62D20;
-      --danger-bg: #FEF2F2;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-    body { background-color: var(--bg-section); color: var(--text-dark); padding: 0; }
-
-    .app-header {
-      background-color: var(--bg-main);
-      border-bottom: 2px solid var(--albioma-green-mid);
-      padding: 16px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-    }
-
-    .app-branding { display: flex; align-items: center; gap: 15px; }
-    .app-logo { height: 48px; width: auto; }
-    .app-title-container { display: flex; flex-direction: column; }
-    .app-title { font-size: 1.6rem; font-weight: 700; color: var(--albioma-green-dark); letter-spacing: -0.5px; }
-    .app-subtitle { font-size: 0.9rem; color: var(--text-muted); margin-top: -2px; }
-
-    nav { display: flex; gap: 8px; }
-    .nav-btn {
-      background-color: var(--bg-section);
-      border: 1px solid var(--border);
-      padding: 10px 20px;
-      border-radius: 8px;
-      font-weight: 600;
-      cursor: pointer;
-      color: var(--text-muted);
-      font-size: 0.95rem;
-      transition: all 0.2s ease-out;
-    }
-    .nav-btn.active {
-      background-color: var(--albioma-green-mid);
-      color: white;
-      border-color: var(--albioma-green-mid);
-      box-shadow: 0 4px 10px -2px rgba(82, 170, 20, 0.3);
-    }
-    .nav-btn:not(.active):hover {
-      background-color: #EEF7EE;
-      border-color: var(--albioma-green-light);
-      color: var(--albioma-green-dark);
-    }
-
-    main { max-width: 1000px; margin: 30px auto; padding: 0 20px; }
-    .panel { display: none; background: var(--bg-main); border: 1px solid var(--border); border-radius: 12px; padding: 24px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.03); }
-    .panel.active { display: block; }
-
-    .form-group { margin-bottom: 20px; }
-    label { display: block; font-size: 0.85rem; font-weight: 700; color: var(--albioma-green-dark); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-    input[type="text"], input[type="date"], textarea { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 1rem; outline: none; transition: border-color 0.2s; background-color: var(--bg-section); }
-    input:focus, textarea:focus { border-color: var(--albioma-green-mid); background-color: white; box-shadow: 0 0 0 3px rgba(82, 170, 20, 0.1); }
-
-    .btn { background: var(--albioma-green-mid); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; text-align: center; justify-content: center;}
-    .btn:hover { background: #459111; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .btn-danger { background: var(--danger); color: white; }
-    .btn-danger:hover { background: #B2251A; }
-    .btn-success { background: var(--success); color: white; }
-    .btn-success:hover { background: #459111; }
-    .btn-secondary { background: #DAE6DA; color: var(--albioma-green-dark); }
-    .btn-secondary:hover { background: #CCDCCD; }
-    .btn-outline-pass { background: white; border: 1px solid var(--success); color: var(--success); }
-    .btn-outline-pass:hover { background: var(--success-bg); }
-    .btn-outline-fail { background: white; border: 1px solid var(--danger); color: var(--danger); }
-    .btn-outline-fail:hover { background: var(--danger-bg); }
-
-    .top-bar { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; background-color: #F0F7F0; border-radius: 10px; padding: 15px; border: 1px solid #E3ECE3;}
-    .top-bar > div { flex: 1; min-width: 180px; }
-
-    .section-title {
-      font-size: 1.15rem;
-      font-weight: 700;
-      color: var(--albioma-green-dark);
-      background-color: #EEF7EE;
-      padding: 10px 16px;
-      border-radius: 8px;
-      margin: 24px 0 12px 0;
-      border-left: 5px solid var(--albioma-green-mid);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .section-title:first-of-type { margin-top: 10px; }
-
-    .task-card { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 12px; background: white; padding: 16px 20px; transition: all 0.2s; }
-    .task-card.passed { background-color: var(--success-bg); border-color: #bbf7d0; border-left-width: 6px; border-left-color: var(--success); }
-    .task-card.failed { background-color: var(--danger-bg); border-color: #fecaca; border-left-width: 6px; border-left-color: var(--danger); }
-
-    .task-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
-    .task-info { flex-grow: 1; min-width: 220px; }
-    .task-title { font-size: 1.05rem; font-weight: 600; color: #111; }
-    .task-meta { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
-    
-    .task-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-    
-    .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: inline-block; }
-    .badge-pass { background: #dcfce7; color: #16a34a; }
-    .badge-fail { background: #fee2e2; color: #dc2626; }
-
-    .fail-drawer { margin-top: 12px; padding-top: 12px; border-top: 1px dashed #f87171; display: none; }
-    .fail-drawer.active { display: block; }
-    .fail-drawer textarea { margin-bottom: 8px; font-size: 0.9rem; resize: vertical; height: 70px; }
-
-    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;}
-    th, td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-    th { color: var(--albioma-green-dark); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.8rem; background: #EEF7EE; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background-color: #FAFDF8; }
-
-    .empty-state { text-align: center; color: var(--text-muted); padding: 50px 20px; background-color: var(--bg-section); border-radius: 10px; border: 2px dashed var(--border); margin: 20px 0;}
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shift Checklist</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#1c2321;
+    --paper:#eef0ec;
+    --panel:#ffffff;
+    --line:#c8cdc4;
+    --accent:#3a6351;
+    --accent-dim:#e4ece7;
+    --warn:#a4462c;
+    --mono: 'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+    --sans: 'IBM Plex Sans',-apple-system,Segoe UI,sans-serif;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    padding:32px 16px 80px;
+  }
+  .wrap{max-width:720px;margin:0 auto;}
+  header{
+    border-bottom:3px solid var(--ink);
+    padding-bottom:16px;
+    margin-bottom:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .brand{
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .logo-spot{
+    width:52px;
+    height:52px;
+    border:2px dashed var(--accent);
+    border-radius:8px;
+    background:var(--accent-dim);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-shrink:0;
+  }
+  .operator-row{
+    display:grid;
+    grid-template-columns:2fr 1fr 1fr;
+    gap:12px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:14px 18px;
+    margin-bottom:24px;
+  }
+  .operator-row label{
+    display:block;
+    font-family:var(--mono);
+    font-size:0.72rem;
+    color:#666;
+    margin-bottom:4px;
+    text-transform:uppercase;
+    letter-spacing:0.05em;
+  }
+  .operator-row input{
+    width:100%;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    font-family:var(--sans);
+    font-size:0.9rem;
+  }
+  .operator-row input:read-only{
+    background:#f3f4f1;
+    color:#333;
+    font-family:var(--mono);
+    opacity:1;
+  }
+  @media (max-width:520px){
+    .operator-row{grid-template-columns:1fr;}
+  }
+  h1{
+    font-size:1.6rem;
+    margin:0;
+    letter-spacing:-0.02em;
+  }
+  .tag{
+    font-family:var(--mono);
+    font-size:0.72rem;
+    color:var(--accent);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+  }
+  .meta{
+    font-family:var(--mono);
+    font-size:0.78rem;
+    color:#555;
+    text-align:right;
+  }
+  section.block{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-left:4px solid var(--accent);
+    border-radius:4px;
+    margin-bottom:20px;
+    overflow:hidden;
+  }
+  section.block.done{border-left-color:#8aa89b;}
+  .block-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:14px 18px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .block-head h2{
+    font-size:1rem;
+    margin:0;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .count{
+    font-family:var(--mono);
+    font-size:0.75rem;
+    color:#777;
+  }
+  .items{padding:0 18px 16px;}
+  label.item{
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    padding:9px 0;
+    border-top:1px solid #eee;
+    font-size:0.95rem;
+    cursor:pointer;
+  }
+  label.item:first-child{border-top:none;}
+  label.item input{
+    margin-top:3px;
+    width:17px;height:17px;
+    accent-color:var(--accent);
+    flex-shrink:0;
+  }
+  label.item span.checked-text{
+    text-decoration:line-through;
+    color:#999;
+  }
+  .item-row{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    padding:9px 0;
+    border-top:1px solid #eee;
+  }
+  .item-row:first-child{border-top:none;}
+  .item-row label.item{
+    padding:0;
+    border-top:none;
+  }
+  .item-comment{
+    margin-left:27px;
+    width:calc(100% - 27px);
+    padding:6px 9px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    font-family:var(--sans);
+    font-size:0.82rem;
+    color:#444;
+  }
+  .item-comment::placeholder{color:#aaa;}
+  .notes{
+    width:100%;
+    margin-top:10px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    font-family:var(--sans);
+    font-size:0.85rem;
+    padding:8px 10px;
+    resize:vertical;
+    min-height:44px;
+  }
+  .actions{
+    display:flex;
+    gap:10px;
+    margin-top:26px;
+    flex-wrap:wrap;
+  }
+  button{
+    font-family:var(--sans);
+    font-weight:600;
+    font-size:0.9rem;
+    border:none;
+    border-radius:4px;
+    padding:12px 20px;
+    cursor:pointer;
+  }
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:#2c4d40;}
+  .btn-ghost{background:transparent;border:1px solid var(--line);color:var(--ink);}
+  .btn-ghost:hover{border-color:var(--accent);}
+  .btn-primary:disabled{background:#a9b8b1;cursor:not-allowed;}
+  #status{
+    font-family:var(--mono);
+    font-size:0.82rem;
+    margin-top:12px;
+    min-height:1.2em;
+  }
+  #status.ok{color:var(--accent);}
+  #status.err{color:var(--warn);}
+  .settings{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:16px 18px;
+    margin-bottom:24px;
+  }
+  .settings summary{
+    cursor:pointer;
+    font-family:var(--mono);
+    font-size:0.78rem;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:#555;
+  }
+  .settings-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+    margin-top:14px;
+  }
+  .settings-grid .full{grid-column:1/-1;}
+  .settings-grid label{
+    display:block;
+    font-family:var(--mono);
+    font-size:0.72rem;
+    color:#666;
+    margin-bottom:4px;
+  }
+  .settings-grid input{
+    width:100%;
+    padding:8px 10px;
+    border:1px solid var(--line);
+    border-radius:4px;
+    font-family:var(--mono);
+    font-size:0.85rem;
+  }
+  @media (max-width:520px){
+    .settings-grid{grid-template-columns:1fr;}
+  }
+</style>
 </head>
 <body>
+<div class="wrap">
 
-  <!-- INTEGRATED APP HEADER -->
-  <header class="app-header">
-    <div class="app-branding">
-      <img src="albioma-logo.png" alt="ALBIOMA Logo" class="app-logo" />
-      <div class="app-title-container">
-        <h1 class="app-title">Checks</h1>
-        <p class="app-subtitle">Daily Operations Management</p>
+  <header>
+    <div class="brand">
+      <div class="logo-spot" id="logoSpot" title="logo.png">
+        <svg viewBox="0 0 48 48" width="40" height="40">
+          <circle cx="24" cy="24" r="22" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+          <path d="M14 25l7 7 13-15" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div>
+        <div class="tag">Shift checklist</div>
+        <h1>Line Readiness Log</h1>
       </div>
     </div>
-    <nav>
-      <button class="nav-btn active" onclick="switchTab('checklist')">Checklist</button>
-      <button class="nav-btn" onclick="switchTab('history')">History Log</button>
-    </nav>
+    <div class="meta" id="clock"></div>
   </header>
 
-  <!-- MAIN CONTENT AREA -->
-  <main>
-    
-    <!-- CHECKLIST TAB -->
-    <section id="checklist" class="panel active">
-      <div class="top-bar">
-        <div>
-          <label for="check-date">Select Date</label>
-          <input type="date" id="check-date" onchange="renderChecklist()" />
-        </div>
-        <div>
-          <label for="operator-name">Current Operator</label>
-          <input type="text" id="operator-name" placeholder="Name or Staff ID" oninput="saveOperatorPreference()" />
-        </div>
+  <div class="operator-row">
+    <div>
+      <label for="operatorName">Operator name</label>
+      <input type="text" id="operatorName" placeholder="Full name">
+    </div>
+    <div>
+      <label>Date</label>
+      <input type="text" id="operatorDate" readonly>
+    </div>
+    <div>
+      <label>Time completed</label>
+      <input type="text" id="operatorTime" readonly>
+    </div>
+  </div>
+
+  <details class="settings" id="settingsBox">
+    <summary>🔒 GitHub log settings (PIN protected)</summary>
+    <div class="settings-grid">
+      <div class="full">
+        <label for="ghToken">Personal Access Token (repo scope)</label>
+        <input type="password" id="ghToken" placeholder="ghp_...">
       </div>
-
-      <div id="checklist-container"></div>
-    </section>
-
-    <!-- HISTORY LOG TAB -->
-    <section id="history" class="panel">
-      <div class="history-header">
-        <h2 style="font-size: 1.4rem; color: var(--albioma-green-dark);">Completion Log</h2>
-        <button class="btn btn-success" onclick="exportToCSV()">Export Data to CSV</button>
+      <div>
+        <label for="ghOwner">Repo owner</label>
+        <input type="text" id="ghOwner" placeholder="your-username">
       </div>
-      <table>
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Section</th>
-            <th>Task Description</th>
-            <th>Status</th>
-            <th>Operator</th>
-            <th>Time</th>
-            <th>Comment / Notes</th>
-          </tr>
-        </thead>
-        <tbody id="history-table-body"></tbody>
-      </table>
-    </section>
+      <div>
+        <label for="ghRepo">Repo name</label>
+        <input type="text" id="ghRepo" placeholder="checklist-repo">
+      </div>
+      <div>
+        <label for="ghBranch">Branch</label>
+        <input type="text" id="ghBranch" placeholder="main" value="main">
+      </div>
+      <div>
+        <label for="ghPath">Log file path</label>
+        <input type="text" id="ghPath" placeholder="log.xlsx" value="log.xlsx">
+      </div>
+      <div class="full">
+        <button class="btn-ghost" id="saveSettings" type="button">Save settings</button>
+      </div>
+      <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:14px;">
+        <label for="newPin">Set / change PIN (leave blank for no lock)</label>
+        <input type="password" id="newPin" placeholder="4+ digit PIN" inputmode="numeric">
+      </div>
+      <div class="full">
+        <button class="btn-ghost" id="setPinBtn" type="button">Save PIN</button>
+        <button class="btn-ghost" id="lockNowBtn" type="button">Lock now</button>
+      </div>
+    </div>
+  </details>
+  <div id="pinStatus" style="font-family:var(--mono);font-size:0.78rem;color:#666;margin:-16px 0 20px;"></div>
 
-  </main>
+  <section class="block" data-section="Before Startup">
+    <div class="block-head">
+      <h2>🟢 Before Startup</h2>
+      <span class="count">0 / 5</span>
+    </div>
+    <div class="items">
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect equipment for visible damage</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check fluid / fuel levels</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Verify safety guards are in place</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Confirm power supply is connected</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Review notes from the previous shift</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+    </div>
+  </section>
 
-  <script>
-    const LOGS_KEY = 'albioma_checklist_logs_v3';
-    const OPERATOR_KEY = 'albioma_checklist_operator_v3';
+  <section class="block" data-section="During Processing">
+    <div class="block-head">
+      <h2>🟡 During Processing</h2>
+      <span class="count">0 / 5</span>
+    </div>
+    <div class="items">
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Monitor temperature / pressure readings</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check output quality every hour</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Record production count</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Watch for unusual noises or vibrations</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Confirm material feed is consistent</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+    </div>
+  </section>
 
-    /* MASTER TASK TEMPLATES GROUPED BY SECTIONS */
-    const sections = [
-      {
-        category: 'Before Start Up',
-        tasks: [
-          { id: '6', title: 'Check Grecon is "OK"' },
-          { id: '7', title: 'Check Grecon Tank level is on "Operational Level"' },
-          { id: '11', title: 'Check that Water Sprayers are Functioning Correctly' }
-        ]
-      },
-      {
-        category: 'During Production',
-        tasks: [
-          { id: '1', title: 'Purge Mills with 200 pumps each @ 9 AM' },
-          { id: '2', title: 'Purge Mills with 200 pumps each @ 3 PM' },
-          { id: '3', title: 'Purge Mills with 200 pumps each @ 9 PM' },
-          { id: '4', title: 'Purge Mills with 200 pumps each @ 3 AM' },
-          { id: '8', title: 'Inspect & Clean Steam Vent @ 530 PM' },
-          { id: '9', title: 'Inspect & Clean Steam Vent @ 530 AM' },
-          { id: '10', title: 'Empty Drop Box' },
-          { id: '14', title: 'Check Mill Adjustments Sheet is up to date' } 
-        ]
-      },
-      {
-        category: 'Once Per Week',
-        tasks: [
-          { id: '5', title: 'Clean Shavings Diverters And Transition Chute SAT NIGHT' },
-          { id: '13', title: 'Check Drinking Water Tank Level Once A Week' },
-          { id: '12', title: 'Empty ALL Bins And Wheel Barrows' }
-        ]
+  <section class="block" data-section="Once a Week">
+    <div class="block-head">
+      <h2>🔵 Once a Week</h2>
+      <span class="count">0 / 5</span>
+    </div>
+    <div class="items">
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Deep clean equipment</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Lubricate moving parts</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Calibrate sensors</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect belts / hoses for wear</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Review the past week's log for anomalies</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
+    </div>
+  </section>
+
+  <textarea class="notes" id="sessionNotes" placeholder="Optional notes for this session..."></textarea>
+
+  <div class="actions">
+    <button class="btn-primary" id="pushBtn">Save & push to GitHub</button>
+    <button class="btn-ghost" id="resetBtn" type="button">Reset checklist</button>
+  </div>
+  <div id="status"></div>
+
+</div>
+
+<script>
+// ---------- clock ----------
+function tick(){
+  const now = new Date();
+  document.getElementById('clock').textContent = now.toLocaleString();
+  document.getElementById('operatorDate').value = now.toISOString().slice(0,10);
+  document.getElementById('operatorTime').value = now.toTimeString().slice(0,8);
+}
+tick(); setInterval(tick, 1000);
+
+// ---------- settings persistence ----------
+const fields = ['ghToken','ghOwner','ghRepo','ghBranch','ghPath'];
+fields.forEach(id=>{
+  const saved = localStorage.getItem('checklist_'+id);
+  if(saved) document.getElementById(id).value = saved;
+});
+document.getElementById('saveSettings').addEventListener('click', ()=>{
+  fields.forEach(id=>{
+    localStorage.setItem('checklist_'+id, document.getElementById(id).value.trim());
+  });
+  setStatus('Settings saved locally in this browser.', 'ok');
+});
+
+// ---------- PIN lock ----------
+function simpleHash(str){
+  let h = 0;
+  for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) >>> 0; }
+  return h.toString(16);
+}
+let settingsUnlocked = false;
+const settingsBox = document.getElementById('settingsBox');
+const pinStatusEl = document.getElementById('pinStatus');
+
+function pinIsSet(){
+  return !!localStorage.getItem('checklist_pin_hash');
+}
+function refreshPinStatus(){
+  pinStatusEl.textContent = pinIsSet()
+    ? 'Settings are PIN-locked.'
+    : 'No PIN set — anyone opening this page can view/edit GitHub settings.';
+}
+refreshPinStatus();
+
+settingsBox.addEventListener('toggle', ()=>{
+  if(settingsBox.open && pinIsSet() && !settingsUnlocked){
+    settingsBox.open = false;
+    const entered = prompt('Enter PIN to access GitHub log settings:');
+    if(entered === null) return;
+    if(simpleHash(entered) === localStorage.getItem('checklist_pin_hash')){
+      settingsUnlocked = true;
+      settingsBox.open = true;
+    } else {
+      alert('Incorrect PIN.');
+    }
+  }
+});
+
+document.getElementById('setPinBtn').addEventListener('click', ()=>{
+  const val = document.getElementById('newPin').value.trim();
+  if(val === ''){
+    localStorage.removeItem('checklist_pin_hash');
+    setStatus('PIN removed — settings are now unlocked.', 'ok');
+  } else {
+    localStorage.setItem('checklist_pin_hash', simpleHash(val));
+    settingsUnlocked = true;
+    setStatus('PIN saved. You\'ll need it next time settings are opened.', 'ok');
+  }
+  document.getElementById('newPin').value = '';
+  refreshPinStatus();
+});
+
+document.getElementById('lockNowBtn').addEventListener('click', ()=>{
+  settingsUnlocked = false;
+  settingsBox.open = false;
+  setStatus('Settings locked.', 'ok');
+});
+
+// ---------- checklist behavior ----------
+function updateCounts(){
+  document.querySelectorAll('.block').forEach(block=>{
+    const boxes = block.querySelectorAll('input[type=checkbox]');
+    const checked = [...boxes].filter(b=>b.checked).length;
+    block.querySelector('.count').textContent = `${checked} / ${boxes.length}`;
+    block.classList.toggle('done', checked === boxes.length);
+  });
+}
+document.querySelectorAll('input[type=checkbox]').forEach(box=>{
+  box.addEventListener('change', ()=>{
+    box.closest('.item').querySelector('span').classList.toggle('checked-text', box.checked);
+    updateCounts();
+  });
+});
+updateCounts();
+
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  document.querySelectorAll('input[type=checkbox]').forEach(b=>{
+    b.checked = false;
+    b.closest('.item').querySelector('span').classList.remove('checked-text');
+  });
+  document.querySelectorAll('.item-comment').forEach(c=> c.value = '');
+  document.getElementById('sessionNotes').value = '';
+  document.getElementById('operatorName').value = '';
+  updateCounts();
+  setStatus('Checklist reset.', 'ok');
+});
+
+function setStatus(msg, cls){
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = cls || '';
+}
+
+// ---------- gather rows ----------
+function gatherRows(){
+  const now = new Date();
+  const date = now.toISOString().slice(0,10);
+  const time = now.toTimeString().slice(0,8);
+  const operator = document.getElementById('operatorName').value.trim() || '(not entered)';
+  const sessionNotes = document.getElementById('sessionNotes').value.trim();
+  const rows = [];
+  document.querySelectorAll('.block').forEach(block=>{
+    const section = block.dataset.section;
+    block.querySelectorAll('.item-row').forEach(row=>{
+      const input = row.querySelector('input[type=checkbox]');
+      const checked = input.checked;
+      const text = row.querySelector('.item span').textContent;
+      const comment = row.querySelector('.item-comment').value.trim();
+      rows.push([date, time, operator, section, text, checked ? 'Y' : 'N', comment, sessionNotes]);
+    });
+  });
+  return rows;
+}
+
+// ---------- GitHub push ----------
+async function pushToGitHub(){
+  const token = document.getElementById('ghToken').value.trim();
+  const owner = document.getElementById('ghOwner').value.trim();
+  const repo  = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim() || 'main';
+  const path  = document.getElementById('ghPath').value.trim() || 'log.xlsx';
+
+  if(!token || !owner || !repo){
+    setStatus('Fill in GitHub settings first (token, owner, repo).', 'err');
+    document.getElementById('settingsBox').open = true;
+    return;
+  }
+
+  if(!document.getElementById('operatorName').value.trim()){
+    setStatus('Enter the operator name before pushing.', 'err');
+    document.getElementById('operatorName').focus();
+    return;
+  }
+
+  setStatus('Reading existing log from GitHub...', '');
+  document.getElementById('pushBtn').disabled = true;
+
+  const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  const headers = {
+    'Authorization': `token ${token}`,
+    'Accept': 'application/vnd.github+json'
+  };
+
+  try{
+    let existingRows = [['Date','Time','Operator','Section','Item','Checked','Item Comment','Session Notes']];
+    let sha = null;
+
+    const getResp = await fetch(`${apiBase}?ref=${branch}`, { headers });
+    if(getResp.status === 200){
+      const data = await getResp.json();
+      sha = data.sha;
+      const binary = atob(data.content.replace(/\n/g,''));
+      const bytes = new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+      const wb = XLSX.read(bytes, { type:'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      existingRows = XLSX.utils.sheet_to_json(ws, { header:1 });
+      if(existingRows.length === 0){
+        existingRows = [['Date','Time','Operator','Section','Item','Checked','Item Comment','Session Notes']];
       }
-    ];
+    } else if(getResp.status !== 404){
+      const errText = await getResp.text();
+      throw new Error(`GitHub read failed (${getResp.status}): ${errText}`);
+    }
 
-    // Helper map to quickly find tasks by ID
-    const allTasksMap = {};
-    sections.forEach(sec => {
-      sec.tasks.forEach(t => {
-        allTasksMap[t.id] = { ...t, category: sec.category };
-      });
+    setStatus('Building updated log file...', '');
+    const newRows = gatherRows();
+    const allRows = existingRows.concat(newRows);
+
+    const newWs = XLSX.utils.aoa_to_sheet(allRows);
+    const newWb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(newWb, newWs, 'Log');
+    const wbArray = XLSX.write(newWb, { bookType:'xlsx', type:'array' });
+
+    let binaryStr = '';
+    const bytes2 = new Uint8Array(wbArray);
+    for(let i=0;i<bytes2.length;i++) binaryStr += String.fromCharCode(bytes2[i]);
+    const base64Content = btoa(binaryStr);
+
+    setStatus('Pushing to GitHub...', '');
+    const putBody = {
+      message: `Checklist log update ${new Date().toISOString()}`,
+      content: base64Content,
+      branch: branch
+    };
+    if(sha) putBody.sha = sha;
+
+    const putResp = await fetch(apiBase, {
+      method: 'PUT',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify(putBody)
     });
 
-    let logs = JSON.parse(localStorage.getItem(LOGS_KEY)) || [];
-
-    document.getElementById('check-date').valueAsDate = new Date();
-    document.getElementById('operator-name').value = localStorage.getItem(OPERATOR_KEY) || '';
-
-    renderChecklist();
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-      
-      document.getElementById(tabId).classList.add('active');
-      event.currentTarget.classList.add('active');
-
-      if (tabId === 'checklist') renderChecklist();
-      if (tabId === 'history') renderHistory();
+    if(!putResp.ok){
+      const errText = await putResp.text();
+      throw new Error(`GitHub write failed (${putResp.status}): ${errText}`);
     }
 
-    function saveOperatorPreference() {
-      const op = document.getElementById('operator-name').value;
-      localStorage.setItem(OPERATOR_KEY, op);
-    }
+    setStatus(`Logged ${newRows.length} rows to ${path} on ${branch}.`, 'ok');
+  } catch(err){
+    console.error(err);
+    setStatus('Error: ' + err.message, 'err');
+  } finally {
+    document.getElementById('pushBtn').disabled = false;
+  }
+}
 
-    function saveLogs() {
-      localStorage.setItem(LOGS_KEY, JSON.stringify(logs));
-    }
+document.getElementById('pushBtn').addEventListener('click', pushToGitHub);
+</script>
 
-    function renderChecklist() {
-      const selectedDate = document.getElementById('check-date').value;
-      const container = document.getElementById('checklist-container');
-      container.innerHTML = '';
-
-      sections.forEach(section => {
-        const sectionHeader = document.createElement('h2');
-        sectionHeader.className = 'section-title';
-        sectionHeader.textContent = section.category;
-        container.appendChild(sectionHeader);
-
-        section.tasks.forEach(task => {
-          const logEntry = logs.find(l => l.taskId === task.id && l.date === selectedDate);
-          const hasLogged = !!logEntry;
-          const status = hasLogged ? logEntry.status : null;
-
-          const card = document.createElement('div');
-          card.className = `task-card ${status === 'Complete' ? 'passed' : status === 'Comments' ? 'failed' : ''}`;
-          
-          let actionsHtml = '';
-          if (!hasLogged) {
-            actionsHtml = `
-              <div class="task-actions" id="actions-${task.id}">
-                <button class="btn btn-outline-pass" onclick="recordTask('${task.id}', 'Complete')">✓ Complete</button>
-                <button class="btn btn-outline-fail" onclick="toggleFailDrawer('${task.id}')">💬 Comments</button>
-              </div>
-            `;
-          } else {
-            actionsHtml = `
-              <div class="task-actions">
-                <span class="badge ${status === 'Complete' ? 'badge-pass' : 'badge-fail'}">${status}</span>
-                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="resetTask('${task.id}')">Change</button>
-              </div>
-            `;
-          }
-
-          let metaHtml = '';
-          if (hasLogged) {
-            metaHtml = `<div class="task-meta">Operator: <strong>${escapeHtml(logEntry.operator)}</strong> @ ${logEntry.time} ${logEntry.comment ? `<br>Comment: <em>${escapeHtml(logEntry.comment)}</em>` : ''}</div>`;
-          } else {
-            metaHtml = `<div class="task-meta" style="color: #999;">Pending evaluation...</div>`;
-          }
-
-          card.innerHTML = `
-            <div class="task-row">
-              <div class="task-info">
-                <div class="task-title">${escapeHtml(task.title)}</div>
-                ${metaHtml}
-              </div>
-              ${actionsHtml}
-            </div>
-            <div class="fail-drawer" id="fail-drawer-${task.id}">
-              <textarea id="fail-comment-${task.id}" placeholder="Mandatory: Enter explanation/comment..."></textarea>
-              <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="toggleFailDrawer('${task.id}')">Cancel</button>
-                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;" onclick="submitFailTask('${task.id}')">Submit Comment</button>
-              </div>
-            </div>
-          `;
-          container.appendChild(card);
-        });
-      });
-    }
-
-    function recordTask(taskId, status, comment = '') {
-      const date = document.getElementById('check-date').value;
-      const operator = document.getElementById('operator-name').value.trim();
-
-      if (!operator) {
-        alert('Required: Operator Name or ID is needed before recording task status.');
-        return;
-      }
-
-      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-      const taskObj = allTasksMap[taskId];
-
-      logs = logs.filter(l => !(l.taskId === taskId && l.date === date));
-
-      logs.push({
-        taskId,
-        taskTitle: taskObj ? taskObj.title : 'Task',
-        category: taskObj ? taskObj.category : 'General',
-        date,
-        operator,
-        time,
-        status,
-        comment
-      });
-
-      saveLogs();
-      renderChecklist();
-    }
-
-    function toggleFailDrawer(taskId) {
-      const operator = document.getElementById('operator-name').value.trim();
-      if (!operator) {
-        alert('Required: Operator Name or ID is needed before recording task status.');
-        return;
-      }
-
-      const drawer = document.getElementById(`fail-drawer-${taskId}`);
-      
-      if (drawer.classList.contains('active')) {
-        drawer.classList.remove('active');
-      } else {
-        drawer.classList.add('active');
-        document.getElementById(`fail-comment-${taskId}`).focus();
-      }
-    }
-
-    function submitFailTask(taskId) {
-      const commentInput = document.getElementById(`fail-comment-${taskId}`);
-      const comment = commentInput.value.trim();
-
-      if (!comment) {
-        alert('Mandatory Rule: You must leave a comment/explanation when clicking Comments.');
-        commentInput.focus();
-        return;
-      }
-
-      recordTask(taskId, 'Comments', comment);
-    }
-
-    function resetTask(taskId) {
-      const date = document.getElementById('check-date').value;
-      logs = logs.filter(l => !(l.taskId === taskId && l.date === date));
-      saveLogs();
-      renderChecklist();
-    }
-
-    function renderHistory() {
-      const tbody = document.getElementById('history-table-body');
-      tbody.innerHTML = '';
-
-      if (logs.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="empty-state">No completion history recorded.</td></tr>';
-        return;
-      }
-
-      const sortedLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
-
-      sortedLogs.forEach(log => {
-        const tr = document.createElement('tr');
-        const badgeClass = log.status === 'Complete' ? 'badge-pass' : 'badge-fail';
-        tr.innerHTML = `
-          <td style="font-weight: 600;">${log.date}</td>
-          <td style="color: var(--text-muted); font-size: 0.85rem;">${escapeHtml(log.category || '-')}</td>
-          <td style="color: #111;">${escapeHtml(log.taskTitle)}</td>
-          <td><span class="badge ${badgeClass}">${log.status}</span></td>
-          <td>${escapeHtml(log.operator)}</td>
-          <td>${log.time}</td>
-          <td>${escapeHtml(log.comment || '-')}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function exportToCSV() {
-      if (logs.length === 0) {
-        alert('Notice: No history logs exist to export.');
-        return;
-      }
-
-      const headers = ['Date', 'Section', 'Task Description', 'Status', 'Operator Name/ID', 'Time (24h)', 'Comment'];
-      const sortedLogs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
-
-      const rows = sortedLogs.map(log => [
-        `"${log.date}"`,
-        `"${(log.category || '').replace(/"/g, '""')}"`,
-        `"${log.taskTitle.replace(/"/g, '""')}"`,
-        `"${log.status}"`,
-        `"${log.operator.replace(/"/g, '""')}"`,
-        `"${log.time}"`,
-        `"${(log.comment || '').replace(/"/g, '""')}"`
-      ]);
-
-      const csvContent = 'data:text/csv;charset=utf-8,' 
-        + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement('a');
-      link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `Albioma_DailyChecks_Export_${new Date().toISOString().slice(0, 10)}.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-
-    function escapeHtml(str) {
-      if (!str) return '';
-      return str.replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-    }
-  </script>
 </body>
 </html>
