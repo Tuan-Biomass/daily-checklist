@@ -218,8 +218,8 @@
           { id: '4', title: 'Purge Mills with 200 pumps each @ 3 AM' },
           { id: '8', title: 'Inspect & Clean Steam Vent @ 530 PM' },
           { id: '9', title: 'Inspect & Clean Steam Vent @ 530 AM' },
-          { id: '10', title: 'Empty Drop Box' }
-          
+          { id: '10', title: 'Empty Drop Box' },
+          { id: '14', title: 'Check Mill Adustments Sheet is up to date' } 
         ]
       },
       {
@@ -284,20 +284,20 @@
           const status = hasLogged ? logEntry.status : null;
 
           const card = document.createElement('div');
-          card.className = `task-card ${status === 'Pass' ? 'passed' : status === 'Fail' ? 'failed' : ''}`;
+          card.className = `task-card ${status === 'Complete' ? 'passed' : status === 'Comments' ? 'failed' : ''}`;
           
           let actionsHtml = '';
           if (!hasLogged) {
             actionsHtml = `
               <div class="task-actions" id="actions-${task.id}">
-                <button class="btn btn-outline-pass" onclick="recordTask('${task.id}', 'Pass')">✓ Pass</button>
-                <button class="btn btn-outline-fail" onclick="toggleFailDrawer('${task.id}')">✗ Fail</button>
+                <button class="btn btn-outline-pass" onclick="recordTask('${task.id}', 'Complete')">✓ Complete</button>
+                <button class="btn btn-outline-fail" onclick="toggleFailDrawer('${task.id}')">💬 Comments</button>
               </div>
             `;
           } else {
             actionsHtml = `
               <div class="task-actions">
-                <span class="badge ${status === 'Pass' ? 'badge-pass' : 'badge-fail'}">${status}</span>
+                <span class="badge ${status === 'Complete' ? 'badge-pass' : 'badge-fail'}">${status}</span>
                 <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="resetTask('${task.id}')">Change</button>
               </div>
             `;
@@ -319,10 +319,10 @@
               ${actionsHtml}
             </div>
             <div class="fail-drawer" id="fail-drawer-${task.id}">
-              <textarea id="fail-comment-${task.id}" placeholder="Mandatory: Enter explanation/comment for this failure..."></textarea>
+              <textarea id="fail-comment-${task.id}" placeholder="Mandatory: Enter explanation/comment..."></textarea>
               <div style="display: flex; gap: 8px; justify-content: flex-end;">
                 <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;" onclick="toggleFailDrawer('${task.id}')">Cancel</button>
-                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;" onclick="submitFailTask('${task.id}')">Submit Failure</button>
+                <button class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;" onclick="submitFailTask('${task.id}')">Submit Comment</button>
               </div>
             </div>
           `;
@@ -382,12 +382,12 @@
       const comment = commentInput.value.trim();
 
       if (!comment) {
-        alert('Mandatory Rule: You must leave a comment/explanation when a task fails.');
+        alert('Mandatory Rule: You must leave a comment/explanation when clicking Comments.');
         commentInput.focus();
         return;
       }
 
-      recordTask(taskId, 'Fail', comment);
+      recordTask(taskId, 'Comments', comment);
     }
 
     function resetTask(taskId) {
@@ -410,7 +410,7 @@
 
       sortedLogs.forEach(log => {
         const tr = document.createElement('tr');
-        const badgeClass = log.status === 'Pass' ? 'badge-pass' : 'badge-fail';
+        const badgeClass = log.status === 'Complete' ? 'badge-pass' : 'badge-fail';
         tr.innerHTML = `
           <td style="font-weight: 600;">${log.date}</td>
           <td style="color: var(--text-muted); font-size: 0.85rem;">${escapeHtml(log.category || '-')}</td>
