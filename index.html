@@ -52,6 +52,12 @@
     align-items:center;
     justify-content:center;
     flex-shrink:0;
+    overflow:hidden;
+  }
+  .app-logo{
+    width:100%;
+    height:100%;
+    object-fit:contain;
   }
   .operator-row{
     display:grid;
@@ -266,15 +272,16 @@
 
   <header>
     <div class="brand">
-      <img src="albioma-logo.png" alt="ALBIOMA Logo" class="app-logo" />
-        <svg viewBox="0 0 48 48" width="40" height="40">
+      <div class="logo-spot">
+        <img id="appLogo" src="albioma-logo.png" alt="Logo" class="app-logo" onError="this.style.display='none'; document.getElementById('fallbackIcon').style.display='block';" />
+        <svg id="fallbackIcon" viewBox="0 0 48 48" width="32" height="32" style="display:none;">
           <circle cx="24" cy="24" r="22" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
           <path d="M14 25l7 7 13-15" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
       <div>
         <div class="tag">Shift checklist</div>
-        <h1> Daily Checks Log</h1>
+        <h1>Daily Checks Log</h1>
       </div>
     </div>
     <div class="meta" id="clock"></div>
@@ -296,8 +303,12 @@
   </div>
 
   <details class="settings" id="settingsBox">
-    <summary>🔒 GitHub log settings (PIN protected)</summary>
+    <summary>🔒 GitHub & App settings (PIN protected)</summary>
     <div class="settings-grid">
+      <div class="full" style="border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:4px;">
+        <label for="logoUpload">Custom Header Logo</label>
+        <input type="file" id="logoUpload" accept="image/*" style="font-family:var(--sans);">
+      </div>
       <div class="full">
         <label for="ghToken">Personal Access Token (repo scope)</label>
         <input type="password" id="ghToken" placeholder="ghp_...">
@@ -342,7 +353,6 @@
       <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon is OK</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
       <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon Tank is On "operational Level</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
       <div class="item-row"><label class="item"><input type="checkbox"><span>Check Water Sprayers are Functioning Correctly</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-      
     </div>
   </section>
 
@@ -373,7 +383,6 @@
       <div class="item-row"><label class="item"><input type="checkbox"><span>Clean Diverters / Shavings 1 into 2 Transition</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
       <div class="item-row"><label class="item"><input type="checkbox"><span>Check Dinking Water Tank Level</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
       <div class="item-row"><label class="item"><input type="checkbox"><span>Empty All Bins And Wheel Barrows</span></label><input type="text" class="item-comment" placeholder="Comment (optional)"></div>
-  
     </div>
   </section>
 
@@ -396,6 +405,32 @@ function tick(){
   document.getElementById('operatorTime').value = now.toTimeString().slice(0,8);
 }
 tick(); setInterval(tick, 1000);
+
+// ---------- custom logo management ----------
+const appLogo = document.getElementById('appLogo');
+const fallbackIcon = document.getElementById('fallbackIcon');
+const savedLogo = localStorage.getItem('checklist_custom_logo');
+
+if (savedLogo) {
+  appLogo.src = savedLogo;
+  appLogo.style.display = 'block';
+  fallbackIcon.style.display = 'none';
+}
+
+document.getElementById('logoUpload').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (file) {
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      const dataUrl = evt.target.result;
+      appLogo.src = dataUrl;
+      appLogo.style.display = 'block';
+      fallbackIcon.style.display = 'none';
+      localStorage.setItem('checklist_custom_logo', dataUrl);
+    };
+    reader.readAsDataURL(file);
+  }
+});
 
 // ---------- settings persistence ----------
 const fields = ['ghToken','ghOwner','ghRepo','ghBranch','ghPath'];
