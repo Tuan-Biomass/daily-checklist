@@ -463,7 +463,7 @@
     <button class="btn-primary" id="pushBtn">Save & push now</button>
     <button class="btn-ghost" id="resetBtn" type="button">Reset checklist</button>
   </div>
-  <div style="font-family:var(--mono);font-size:0.72rem;color:#888;margin-top:6px;">Changes auto-save to GitHub ~3s after you stop editing.</div>
+  <div style="font-family:var(--mono);font-size:0.72rem;color:#888;margin-top:6px;">Auto-save is off — click "Save &amp; push now" to log changes. You'll get a warning if you try to leave the page with unsaved changes.</div>
   <div id="status"></div>
 
 </div>
@@ -560,6 +560,20 @@ document.getElementById('lockNowBtn').addEventListener('click', ()=>{
   setStatus('Settings locked.', 'ok');
 });
 
+// ---------- unsaved changes tracking ----------
+let hasUnsavedChanges = false;
+function markDirty(){
+  hasUnsavedChanges = true;
+}
+
+window.addEventListener('beforeunload', (e)=>{
+  if(hasUnsavedChanges){
+    e.preventDefault();
+    e.returnValue = ''; // required for Chrome to show the native confirmation dialog
+    return '';
+  }
+});
+
 // ---------- checklist behavior ----------
 function updateCounts(){
   document.querySelectorAll('.block').forEach(block=>{
@@ -573,12 +587,12 @@ document.querySelectorAll('input[type=checkbox]').forEach(box=>{
   box.addEventListener('change', ()=>{
     box.closest('.item').querySelector('span').classList.toggle('checked-text', box.checked);
     updateCounts();
+    markDirty();
   });
 });
 updateCounts();
 
 document.getElementById('resetBtn').addEventListener('click', ()=>{
-  clearTimeout(autoSaveTimer);
   sessionId = newSessionId();
   localStorage.setItem('checklist_session_id', sessionId);
   localStorage.setItem('checklist_session_date', new Date().toISOString().slice(0,10));
@@ -591,6 +605,7 @@ document.getElementById('resetBtn').addEventListener('click', ()=>{
   document.getElementById('sessionNotes').value = '';
   document.getElementById('operatorName').value = '';
   updateCounts();
+  hasUnsavedChanges = false;
   setStatus('Checklist reset.', 'ok');
 });
 
@@ -623,10 +638,7 @@ function gatherRows(){
 
 // ---------- GitHub push ----------
 let pushInFlight = false;
-let rerunAfterPush = false;
-let autoSaveTimer = null;
-
-async function doPush(auto){
+async function doPush(){
   const token = document.getElementById('ghToken').value.trim();
   const owner = document.getElementById('ghOwner').value.trim();
   const repo  = document.getElementById('ghRepo').value.trim();
@@ -634,33 +646,22 @@ async function doPush(auto){
   const path  = document.getElementById('ghPath').value.trim() || 'log.xlsx';
 
   if(!token || !owner || !repo){
-    if(auto){
-      setStatus('Auto-save waiting: fill in GitHub settings to enable it.', 'err');
-    } else {
-      setStatus('Fill in GitHub settings first (token, owner, repo).', 'err');
-      document.getElementById('settingsBox').open = true;
-    }
+    setStatus('Fill in GitHub settings first (token, owner, repo).', 'err');
+    document.getElementById('settingsBox').open = true;
     return;
   }
 
   if(!document.getElementById('operatorName').value.trim()){
-    if(auto){
-      setStatus('Auto-save waiting: enter the operator name.', 'err');
-    } else {
-      setStatus('Enter the operator name before pushing.', 'err');
-      document.getElementById('operatorName').focus();
-    }
+    setStatus('Enter the operator name before pushing.', 'err');
+    document.getElementById('operatorName').focus();
     return;
   }
 
   if(pushInFlight){
-    rerunAfterPush = true;
     return;
   }
   pushInFlight = true;
   document.getElementById('pushBtn').disabled = true;
-
-  setStatus(auto ? 'Auto-saving...' : 'Reading existing log from GitHub...', '');
 
   const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
   const headers = {
@@ -669,98 +670,112 @@ async function doPush(auto){
   };
   const emptyLog = [['Date','Time','Operator','Section','Item','Checked','Item Comment','Session Notes','Session ID']];
 
+  const MAX_ATTEMPTS = 4;
+
   try{
-    let existingRows = emptyLog;
-    let sha = null;
+    let newRowsCount = 0;
+    let lastErr = null;
 
-    const getResp = await fetch(`${apiBase}?ref=${branch}`, { headers });
-    if(getResp.status === 200){
-      const data = await getResp.json();
-      sha = data.sha;
-      const binary = atob(data.content.replace(/\n/g,''));
-      const bytes = new Uint8Array(binary.length);
-      for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
-      const wb = XLSX.read(bytes, { type:'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      existingRows = XLSX.utils.sheet_to_json(ws, { header:1 });
-      if(existingRows.length === 0){
-        existingRows = emptyLog;
+    for(let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++){
+      setStatus(attempt === 1 ? 'Reading existing log from GitHub...' : `Retrying (${attempt-1})...`, '');
+
+      let existingRows = emptyLog;
+      let sha = null;
+
+      const getResp = await fetch(`${apiBase}?ref=${branch}`, { headers });
+      if(getResp.status === 200){
+        const data = await getResp.json();
+        sha = data.sha;
+        const binary = atob(data.content.replace(/\n/g,''));
+        const bytes = new Uint8Array(binary.length);
+        for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+        const wb = XLSX.read(bytes, { type:'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        existingRows = XLSX.utils.sheet_to_json(ws, { header:1 });
+        if(existingRows.length === 0){
+          existingRows = emptyLog;
+        }
+      } else if(getResp.status !== 404){
+        const errText = await getResp.text();
+        throw new Error(`GitHub read failed (${getResp.status}): ${errText}`);
       }
-    } else if(getResp.status !== 404){
-      const errText = await getResp.text();
-      throw new Error(`GitHub read failed (${getResp.status}): ${errText}`);
-    }
 
-    // Drop any rows previously auto-saved by this session, so autosave
-    // updates in place instead of piling up duplicate row-sets.
-    const filteredRows = existingRows.filter(row => row[8] !== sessionId);
+      // Drop any rows previously auto-saved by this session, so autosave
+      // updates in place instead of piling up duplicate row-sets.
+      const filteredRows = existingRows.filter(row => row[8] !== sessionId);
 
-    const newRows = gatherRows();
-    const allRows = filteredRows.concat(newRows);
+      const newRows = gatherRows();
+      newRowsCount = newRows.length;
+      const allRows = filteredRows.concat(newRows);
 
-    const newWs = XLSX.utils.aoa_to_sheet(allRows);
-    const newWb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(newWb, newWs, 'Log');
-    const wbArray = XLSX.write(newWb, { bookType:'xlsx', type:'array' });
+      const newWs = XLSX.utils.aoa_to_sheet(allRows);
+      const newWb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(newWb, newWs, 'Log');
+      const wbArray = XLSX.write(newWb, { bookType:'xlsx', type:'array' });
 
-    let binaryStr = '';
-    const bytes2 = new Uint8Array(wbArray);
-    for(let i=0;i<bytes2.length;i++) binaryStr += String.fromCharCode(bytes2[i]);
-    const base64Content = btoa(binaryStr);
+      let binaryStr = '';
+      const bytes2 = new Uint8Array(wbArray);
+      for(let i=0;i<bytes2.length;i++) binaryStr += String.fromCharCode(bytes2[i]);
+      const base64Content = btoa(binaryStr);
 
-    const putBody = {
-      message: auto ? `Checklist autosave ${new Date().toISOString()}` : `Checklist log update ${new Date().toISOString()}`,
-      content: base64Content,
-      branch: branch
-    };
-    if(sha) putBody.sha = sha;
+      const putBody = {
+        message: `Checklist log update ${new Date().toISOString()}`,
+        content: base64Content,
+        branch: branch
+      };
+      if(sha) putBody.sha = sha;
 
-    const putResp = await fetch(apiBase, {
-      method: 'PUT',
-      headers: { ...headers, 'Content-Type': 'application/json' },
-      body: JSON.stringify(putBody)
-    });
+      const putResp = await fetch(apiBase, {
+        method: 'PUT',
+        headers: { ...headers, 'Content-Type': 'application/json' },
+        body: JSON.stringify(putBody)
+      });
 
-    if(!putResp.ok){
+      if(putResp.ok){
+        lastErr = null;
+        break;
+      }
+
       const errText = await putResp.text();
+
+      // 409 = someone else (another tab/device/session) wrote to the file
+      // between our read and write. Back off briefly and retry with a
+      // fresh read instead of failing outright.
+      if(putResp.status === 409 && attempt < MAX_ATTEMPTS){
+        lastErr = new Error(`GitHub write failed (${putResp.status}): ${errText}`);
+        await new Promise(r => setTimeout(r, 400 * attempt + Math.random()*300));
+        continue;
+      }
+
       throw new Error(`GitHub write failed (${putResp.status}): ${errText}`);
     }
 
-    const stamp = new Date().toLocaleTimeString();
-    setStatus(auto ? `Auto-saved at ${stamp}.` : `Logged ${newRows.length} rows to ${path} on ${branch}.`, 'ok');
+    if(lastErr) throw lastErr;
+
+    hasUnsavedChanges = false;
+    setStatus(`Logged ${newRowsCount} rows to ${path} on ${branch}.`, 'ok');
   } catch(err){
     console.error(err);
-    setStatus((auto ? 'Auto-save error: ' : 'Error: ') + err.message, 'err');
+    setStatus('Error: ' + err.message, 'err');
   } finally {
     document.getElementById('pushBtn').disabled = false;
     pushInFlight = false;
-    if(rerunAfterPush){
-      rerunAfterPush = false;
-      scheduleAutoSave();
-    }
   }
 }
 
-function scheduleAutoSave(){
-  clearTimeout(autoSaveTimer);
-  setStatus('Unsaved changes — auto-saving in a few seconds...', '');
-  autoSaveTimer = setTimeout(()=> doPush(true), 3000);
-}
-
 document.getElementById('pushBtn').addEventListener('click', ()=>{
-  clearTimeout(autoSaveTimer);
-  doPush(false);
+  doPush();
 });
 
-// Trigger debounced autosave on any checklist edit
+// Mark checklist as having unsaved changes on any edit (save is manual now)
 document.querySelectorAll('input[type=checkbox], .item-time').forEach(el=>{
-  el.addEventListener('change', scheduleAutoSave);
+  el.addEventListener('change', markDirty);
 });
 document.querySelectorAll('.item-comment').forEach(el=>{
-  el.addEventListener('input', scheduleAutoSave);
+  el.addEventListener('input', markDirty);
 });
-document.getElementById('operatorName').addEventListener('input', scheduleAutoSave);
-document.getElementById('sessionNotes').addEventListener('input', scheduleAutoSave);
+document.getElementById('operatorName').addEventListener('input', markDirty);
+document.getElementById('sessionNotes').addEventListener('input', markDirty);
 </script>
 
 </body>
