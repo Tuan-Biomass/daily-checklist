@@ -366,6 +366,10 @@
     <div class="meta" id="clock"></div>
   </header>
 
+  <div id="unsavedBanner" style="display:none; background:#fdf1ea; border:1px solid var(--warn); color:var(--warn); border-radius:8px; padding:10px 14px; margin-bottom:18px; font-family:var(--mono); font-size:0.82rem; font-weight:600;">
+    ⚠ Unsaved changes — click "Save &amp; push now" before closing this page.
+  </div>
+
   <div class="operator-row">
     <div>
       <label for="operatorName">Operator name</label>
@@ -560,10 +564,79 @@ document.getElementById('lockNowBtn').addEventListener('click', ()=>{
   setStatus('Settings locked.', 'ok');
 });
 
+// ---------- local same-day persistence ----------
+// Keeps checked items, times, comments, operator name and notes if the page
+// is closed/reopened on the SAME day. A new day (or manual reset) starts fresh.
+const LOCAL_STATE_KEY = 'checklist_localstate_' + today;
+
+function collectItemRows(){
+  return Array.from(document.querySelectorAll('.item-row'));
+}
+
+function saveLocalState(){
+  const items = collectItemRows().map(row=>({
+    checked: row.querySelector('input[type=checkbox]').checked,
+    time: row.querySelector('.item-time').value,
+    comment: row.querySelector('.item-comment').value
+  }));
+  const state = {
+    date: today,
+    operatorName: document.getElementById('operatorName').value,
+    sessionNotes: document.getElementById('sessionNotes').value,
+    items
+  };
+  try{
+    localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify(state));
+  } catch(e){
+    console.error('Could not save local checklist state', e);
+  }
+}
+
+function restoreLocalState(){
+  let raw;
+  try{ raw = localStorage.getItem(LOCAL_STATE_KEY); } catch(e){ return; }
+  if(!raw) return;
+  let state;
+  try{ state = JSON.parse(raw); } catch(e){ return; }
+  if(!state || state.date !== today) return;
+
+  document.getElementById('operatorName').value = state.operatorName || '';
+  document.getElementById('sessionNotes').value = state.sessionNotes || '';
+
+  collectItemRows().forEach((row, i)=>{
+    const saved = state.items && state.items[i];
+    if(!saved) return;
+    const checkbox = row.querySelector('input[type=checkbox]');
+    checkbox.checked = !!saved.checked;
+    row.querySelector('.item span').classList.toggle('checked-text', checkbox.checked);
+    row.querySelector('.item-time').value = saved.time || '';
+    row.querySelector('.item-comment').value = saved.comment || '';
+  });
+}
+
+function clearLocalState(){
+  try{ localStorage.removeItem(LOCAL_STATE_KEY); } catch(e){}
+}
+
 // ---------- unsaved changes tracking ----------
 let hasUnsavedChanges = false;
+const baseTitle = document.title;
+const unsavedBanner = document.getElementById('unsavedBanner');
+
+function updateUnsavedIndicator(){
+  if(hasUnsavedChanges){
+    unsavedBanner.style.display = 'block';
+    document.title = '● ' + baseTitle;
+  } else {
+    unsavedBanner.style.display = 'none';
+    document.title = baseTitle;
+  }
+}
+
 function markDirty(){
   hasUnsavedChanges = true;
+  updateUnsavedIndicator();
+  saveLocalState();
 }
 
 window.addEventListener('beforeunload', (e)=>{
@@ -590,6 +663,7 @@ document.querySelectorAll('input[type=checkbox]').forEach(box=>{
     markDirty();
   });
 });
+restoreLocalState();
 updateCounts();
 
 document.getElementById('resetBtn').addEventListener('click', ()=>{
@@ -606,6 +680,7 @@ document.getElementById('resetBtn').addEventListener('click', ()=>{
   document.getElementById('operatorName').value = '';
   updateCounts();
   hasUnsavedChanges = false;
+  clearLocalState();
   setStatus('Checklist reset.', 'ok');
 });
 
