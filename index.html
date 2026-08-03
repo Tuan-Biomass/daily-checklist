@@ -6,35 +6,169 @@
 <title>Shift Checklist</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
   :root{
     --ink:#1c2321;
     --paper:#eef0ec;
     --panel:#ffffff;
     --line:#c8cdc4;
-    --accent:#3a6351;
-    --accent-dim:#e4ece7;
-    --accent-soft:#f3f7f5;
+    --shadow: 0 1px 2px rgba(28,35,33,0.05), 0 4px 14px rgba(28,35,33,0.05);
+    --shadow-hover: 0 2px 6px rgba(28,35,33,0.07), 0 10px 24px rgba(28,35,33,0.09);
     --warn:#a4462c;
-    --shadow: 0 1px 2px rgba(28,35,33,0.04), 0 4px 14px rgba(28,35,33,0.05);
-    --shadow-hover: 0 2px 6px rgba(28,35,33,0.06), 0 8px 22px rgba(28,35,33,0.08);
-    --mono: 'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
-    --sans: 'IBM Plex Sans',-apple-system,Segoe UI,sans-serif;
+    --mono:'IBM Plex Mono','SFMono-Regular',Consolas,monospace;
+    --sans:'IBM Plex Sans',-apple-system,Segoe UI,sans-serif;
+
+    /* shift palettes — swapped by JS via body[data-shift] */
+    --day-accent:#b5711f;
+    --day-accent-deep:#8c5717;
+    --day-accent-dim:#f7ecd9;
+    --day-accent-soft:#fbf6ec;
+    --day-glow: rgba(181,113,31,0.10);
+
+    --night-accent:#3c4a78;
+    --night-accent-deep:#2c375c;
+    --night-accent-dim:#e4e7f3;
+    --night-accent-soft:#f1f2f8;
+    --night-glow: rgba(60,74,120,0.12);
+
+    --accent:var(--day-accent);
+    --accent-deep:var(--day-accent-deep);
+    --accent-dim:var(--day-accent-dim);
+    --accent-soft:var(--day-accent-soft);
+    --accent-glow:var(--day-glow);
   }
-  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  body[data-shift="night"]{
+    --accent:var(--night-accent);
+    --accent-deep:var(--night-accent-deep);
+    --accent-dim:var(--night-accent-dim);
+    --accent-soft:var(--night-accent-soft);
+    --accent-glow:var(--night-glow);
+  }
+
   *{box-sizing:border-box;}
   body{
     margin:0;
     background:
-      radial-gradient(circle at 15% 0%, rgba(58,99,81,0.06), transparent 45%),
+      radial-gradient(circle at 12% 0%, var(--accent-glow), transparent 46%),
       var(--paper);
     color:var(--ink);
     font-family:var(--sans);
-    padding:32px 16px 80px;
+    padding:28px 16px 90px;
+    transition:background .5s ease;
   }
-  .wrap{max-width:720px;margin:0 auto;}
+  .wrap{max-width:740px;margin:0 auto;}
+
+  /* ---------- shift switch (signature element) ---------- */
+  .shift-panel{
+    position:relative;
+    background:
+      linear-gradient(155deg, #f7f8f5 0%, #e7e9e3 45%, #dcdfd8 100%);
+    border:1px solid #c3c8bd;
+    border-radius:14px;
+    padding:18px 20px;
+    margin-bottom:22px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.6),
+      var(--shadow);
+  }
+  .shift-panel::before, .shift-panel::after,
+  .shift-rivets span{
+    content:'';
+  }
+  .shift-rivets{position:absolute;inset:0;pointer-events:none;}
+  .shift-rivets span{
+    position:absolute;
+    width:6px;height:6px;
+    border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #fff, #9ba39a 70%, #7d867d);
+    box-shadow:0 1px 1px rgba(0,0,0,0.25);
+  }
+  .shift-rivets span:nth-child(1){top:9px;left:9px;}
+  .shift-rivets span:nth-child(2){top:9px;right:9px;}
+  .shift-rivets span:nth-child(3){bottom:9px;left:9px;}
+  .shift-rivets span:nth-child(4){bottom:9px;right:9px;}
+
+  .shift-panel-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:14px;
+  }
+  .shift-eyebrow{
+    font-family:var(--mono);
+    font-size:0.7rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:#6b7169;
+    font-weight:600;
+  }
+  .shift-readout{
+    font-family:var(--mono);
+    font-size:0.78rem;
+    color:var(--accent);
+    font-weight:600;
+    transition:color .4s ease;
+  }
+
+  .shift-switch{
+    position:relative;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    background:linear-gradient(180deg,#20241f,#14170f);
+    border-radius:10px;
+    padding:5px;
+    box-shadow:inset 0 2px 5px rgba(0,0,0,0.45), inset 0 -1px 0 rgba(255,255,255,0.05);
+  }
+  .shift-thumb{
+    position:absolute;
+    top:5px;bottom:5px;left:5px;
+    width:calc(50% - 5px);
+    border-radius:7px;
+    background:linear-gradient(180deg, var(--accent), var(--accent-deep));
+    box-shadow:0 2px 6px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition:transform .32s cubic-bezier(.6,.1,.25,1), background .4s ease;
+    z-index:0;
+  }
+  body[data-shift="night"] .shift-thumb{transform:translateX(calc(100% + 0px));}
+
+  .shift-option{
+    position:relative;
+    z-index:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding:11px 10px;
+    border:none;
+    background:transparent;
+    font-family:var(--mono);
+    font-size:0.82rem;
+    font-weight:600;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    color:#8a9086;
+    cursor:pointer;
+    transition:color .3s ease;
+  }
+  .shift-option svg{opacity:0.85;transition:opacity .3s ease;}
+  .shift-option.active{color:#fff;}
+  .shift-option.active svg{opacity:1;}
+
+  .shift-sub{
+    margin-top:12px;
+    font-family:var(--mono);
+    font-size:0.72rem;
+    color:#7a8078;
+    text-align:center;
+  }
+
+  /* ---------- header ---------- */
   header{
     border-bottom:3px solid var(--ink);
-    padding-bottom:16px;
+    padding-bottom:14px;
     margin-bottom:20px;
     display:flex;
     justify-content:space-between;
@@ -42,25 +176,37 @@
     gap:16px;
     flex-wrap:wrap;
   }
-  .brand{
-    display:flex;
-    align-items:center;
-    gap:14px;
-  }
+  .brand{display:flex;align-items:center;gap:14px;}
   .logo-spot{
-    width:76px;
-    height:76px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-shrink:0;
-    overflow:hidden;
+    width:64px;height:64px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;overflow:hidden;
   }
-  .app-logo{
-    width:100%;
-    height:100%;
-    object-fit:contain;
+  .app-logo{width:100%;height:100%;object-fit:contain;}
+  h1{
+    font-size:1.55rem;
+    margin:0;
+    letter-spacing:-0.02em;
+    font-weight:700;
+    transition:color .4s ease;
   }
+  .tag{
+    font-family:var(--mono);
+    font-size:0.72rem;
+    color:var(--accent);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    transition:color .4s ease;
+  }
+  .meta{font-family:var(--mono);font-size:0.78rem;color:#555;text-align:right;}
+
+  .unsaved-banner{
+    display:none;
+    background:#fdf1ea;border:1px solid var(--warn);color:var(--warn);
+    border-radius:8px;padding:10px 14px;margin-bottom:18px;
+    font-family:var(--mono);font-size:0.82rem;font-weight:600;
+  }
+
   .operator-row{
     display:grid;
     grid-template-columns:2fr 1fr;
@@ -73,56 +219,19 @@
     box-shadow:var(--shadow);
   }
   .operator-row label{
-    display:block;
-    font-family:var(--mono);
-    font-size:0.72rem;
-    color:#666;
-    margin-bottom:5px;
-    text-transform:uppercase;
-    letter-spacing:0.05em;
+    display:block;font-family:var(--mono);font-size:0.72rem;color:#666;
+    margin-bottom:5px;text-transform:uppercase;letter-spacing:0.05em;
   }
   .operator-row input{
-    width:100%;
-    padding:9px 11px;
-    border:1px solid var(--line);
-    border-radius:6px;
-    font-family:var(--sans);
-    font-size:0.9rem;
+    width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:6px;
+    font-family:var(--sans);font-size:0.9rem;
     transition:border-color .15s ease, box-shadow .15s ease;
   }
-  .operator-row input:focus{
-    outline:none;
-    border-color:var(--accent);
-    box-shadow:0 0 0 3px var(--accent-dim);
-  }
-  .operator-row input:read-only{
-    background:#f3f4f1;
-    color:#333;
-    font-family:var(--mono);
-    opacity:1;
-  }
-  @media (max-width:520px){
-    .operator-row{grid-template-columns:1fr;}
-  }
-  h1{
-    font-size:1.7rem;
-    margin:0;
-    letter-spacing:-0.02em;
-    font-weight:700;
-  }
-  .tag{
-    font-family:var(--mono);
-    font-size:0.72rem;
-    color:var(--accent);
-    text-transform:uppercase;
-    letter-spacing:0.08em;
-  }
-  .meta{
-    font-family:var(--mono);
-    font-size:0.78rem;
-    color:#555;
-    text-align:right;
-  }
+  .operator-row input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+  .operator-row input:read-only{background:#f3f4f1;color:#333;font-family:var(--mono);opacity:1;}
+  @media (max-width:520px){.operator-row{grid-template-columns:1fr;}}
+
+  /* ---------- checklist sections ---------- */
   section.block{
     background:var(--panel);
     border:1px solid var(--line);
@@ -131,244 +240,168 @@
     margin-bottom:18px;
     overflow:hidden;
     box-shadow:var(--shadow);
-    transition:box-shadow .18s ease, border-left-color .18s ease;
+    transition:box-shadow .18s ease, border-left-color .4s ease;
   }
   section.block:hover{box-shadow:var(--shadow-hover);}
   section.block.done{border-left-color:#8aa89b;}
   .block-head{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
+    display:flex;align-items:center;justify-content:space-between;
     padding:15px 20px;
-    cursor:pointer;
-    user-select:none;
-    background:linear-gradient(180deg, rgba(58,99,81,0.035), transparent);
+    background:linear-gradient(180deg, var(--accent-glow), transparent);
   }
   .block-head h2{
-    font-size:1rem;
-    margin:0;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    font-weight:600;
+    font-size:0.98rem;margin:0;display:flex;align-items:center;gap:11px;font-weight:600;
   }
-  .count{
-    font-family:var(--mono);
-    font-size:0.75rem;
-    color:#777;
-    background:var(--accent-soft);
-    border:1px solid var(--line);
-    border-radius:20px;
-    padding:3px 10px;
-    white-space:nowrap;
-  }
-  section.block.done .count{
-    background:var(--accent-dim);
-    color:var(--accent);
-    border-color:var(--accent);
-  }
-  .items{padding:2px 20px 18px;}
-  label.item{
-    display:flex;
-    align-items:flex-start;
-    gap:10px;
-    font-size:0.95rem;
-    cursor:pointer;
-  }
-  label.item input{
-    margin-top:3px;
-    width:18px;height:18px;
-    accent-color:var(--accent);
+  .swatch{
+    width:9px;height:9px;border-radius:2px;
+    background:var(--accent);
+    box-shadow:0 0 0 3px var(--accent-dim);
     flex-shrink:0;
-    cursor:pointer;
+    transition:background .4s ease, box-shadow .4s ease;
   }
-  label.item span.checked-text{
-    text-decoration:line-through;
-    color:#999;
+  section.block.done .swatch{background:#5f8a72;box-shadow:0 0 0 3px #dcebe2;}
+  .count{
+    font-family:var(--mono);font-size:0.75rem;color:#777;
+    background:var(--accent-soft);border:1px solid var(--line);border-radius:20px;
+    padding:3px 10px;white-space:nowrap;
+    transition:background .4s ease;
   }
+  section.block.done .count{background:var(--accent-dim);color:var(--accent);border-color:var(--accent);}
+
+  .items{padding:2px 20px 18px;}
   .item-row{
-    display:flex;
-    flex-direction:column;
-    gap:8px;
-    padding:12px 0;
-    border-top:1px solid #eee;
+    display:flex;flex-direction:column;gap:8px;
+    padding:12px 0;border-top:1px solid #eee;
+    transition:opacity .2s ease;
   }
   .item-row:first-child{border-top:none;}
-  .item-row label.item{
-    padding:0;
-    border-top:none;
+  .item-row[hidden]{display:none;}
+  label.item{display:flex;align-items:flex-start;gap:10px;font-size:0.95rem;cursor:pointer;}
+  label.item input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;cursor:pointer;}
+  label.item span.checked-text{text-decoration:line-through;color:#999;}
+
+  .shift-chip{
+    display:inline-flex;align-items:center;gap:4px;
+    font-family:var(--mono);font-size:0.62rem;font-weight:600;letter-spacing:0.04em;
+    text-transform:uppercase;
+    padding:2px 6px;border-radius:4px;
+    margin-left:8px;flex-shrink:0;vertical-align:1px;
   }
-  .item-meta{
-    display:flex;
-    gap:8px;
-    margin-left:28px;
-  }
+  .shift-chip.day{background:var(--day-accent-dim);color:var(--day-accent);}
+  .shift-chip.night{background:var(--night-accent-dim);color:var(--night-accent);}
+
+  .item-meta{display:flex;gap:8px;margin-left:28px;}
   .item-time-wrap{
-    display:flex;
-    align-items:center;
-    gap:6px;
-    background:var(--accent-soft);
-    border:1px solid var(--line);
-    border-radius:6px;
-    padding:0 8px 0 9px;
-    flex-shrink:0;
+    display:flex;align-items:center;gap:6px;
+    background:var(--accent-soft);border:1px solid var(--line);border-radius:6px;
+    padding:0 8px 0 9px;flex-shrink:0;
+    transition:background .4s ease;
   }
-  .item-time-wrap svg{flex-shrink:0;color:var(--accent);opacity:0.75;}
-  .item-time{
-    border:none;
-    background:transparent;
-    padding:6px 2px;
-    font-family:var(--mono);
-    font-size:0.8rem;
-    color:var(--ink);
-    width:96px;
-  }
+  .item-time-wrap svg{flex-shrink:0;color:var(--accent);opacity:0.75;transition:color .4s ease;}
+  .item-time{border:none;background:transparent;padding:6px 2px;font-family:var(--mono);font-size:0.8rem;color:var(--ink);width:96px;}
   .item-time:focus{outline:none;}
-  .item-time-wrap:focus-within{
-    border-color:var(--accent);
-    box-shadow:0 0 0 3px var(--accent-dim);
-  }
+  .item-time-wrap:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
   .item-comment{
-    flex:1;
-    min-width:0;
-    padding:7px 10px;
-    border:1px solid var(--line);
-    border-radius:6px;
-    font-family:var(--sans);
-    font-size:0.82rem;
-    color:#444;
+    flex:1;min-width:0;padding:7px 10px;border:1px solid var(--line);border-radius:6px;
+    font-family:var(--sans);font-size:0.82rem;color:#444;
     transition:border-color .15s ease, box-shadow .15s ease;
   }
-  .item-comment:focus{
-    outline:none;
-    border-color:var(--accent);
-    box-shadow:0 0 0 3px var(--accent-dim);
-  }
+  .item-comment:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
   .item-comment::placeholder{color:#aaa;}
   @media (max-width:460px){
     .item-meta{flex-direction:column;margin-left:0;}
     .item-time-wrap{align-self:flex-start;}
   }
+
   .notes{
-    width:100%;
-    margin-top:10px;
-    border:1px solid var(--line);
-    border-radius:8px;
-    font-family:var(--sans);
-    font-size:0.88rem;
-    padding:12px 14px;
-    resize:vertical;
-    min-height:52px;
+    width:100%;margin-top:10px;border:1px solid var(--line);border-radius:8px;
+    font-family:var(--sans);font-size:0.88rem;padding:12px 14px;resize:vertical;min-height:52px;
     box-shadow:var(--shadow);
     transition:border-color .15s ease, box-shadow .15s ease;
   }
-  .notes:focus{
-    outline:none;
-    border-color:var(--accent);
-    box-shadow:0 0 0 3px var(--accent-dim);
-  }
-  .actions{
-    display:flex;
-    gap:10px;
-    margin-top:26px;
-    flex-wrap:wrap;
-  }
+  .notes:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+
+  .actions{display:flex;gap:10px;margin-top:26px;flex-wrap:wrap;}
   button{
-    font-family:var(--sans);
-    font-weight:600;
-    font-size:0.9rem;
-    border:none;
-    border-radius:7px;
-    padding:12px 22px;
-    cursor:pointer;
-    transition:background .15s ease, border-color .15s ease, transform .1s ease;
+    font-family:var(--sans);font-weight:600;font-size:0.9rem;border:none;border-radius:7px;
+    padding:12px 22px;cursor:pointer;
+    transition:background .2s ease, border-color .15s ease, transform .1s ease;
   }
   button:active{transform:translateY(1px);}
   .btn-primary{background:var(--accent);color:#fff;box-shadow:var(--shadow);}
-  .btn-primary:hover{background:#2c4d40;}
+  .btn-primary:hover{background:var(--accent-deep);}
   .btn-ghost{background:var(--panel);border:1px solid var(--line);color:var(--ink);}
   .btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
   .btn-primary:disabled{background:#a9b8b1;cursor:not-allowed;}
-  #status{
-    font-family:var(--mono);
-    font-size:0.82rem;
-    margin-top:12px;
-    min-height:1.2em;
-  }
+  #status{font-family:var(--mono);font-size:0.82rem;margin-top:12px;min-height:1.2em;}
   #status.ok{color:var(--accent);}
   #status.err{color:var(--warn);}
+
   .settings{
-    background:var(--panel);
-    border:1px solid var(--line);
-    border-radius:10px;
-    padding:16px 20px;
-    margin-bottom:24px;
-    box-shadow:var(--shadow);
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:16px 20px;margin-bottom:24px;box-shadow:var(--shadow);
   }
   .settings summary{
-    cursor:pointer;
-    font-family:var(--mono);
-    font-size:0.78rem;
-    text-transform:uppercase;
-    letter-spacing:0.06em;
-    color:#555;
+    cursor:pointer;font-family:var(--mono);font-size:0.78rem;
+    text-transform:uppercase;letter-spacing:0.06em;color:#555;
   }
-  .settings-grid{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:12px;
-    margin-top:14px;
-  }
+  .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;}
   .settings-grid .full{grid-column:1/-1;}
-  .settings-grid label{
-    display:block;
-    font-family:var(--mono);
-    font-size:0.72rem;
-    color:#666;
-    margin-bottom:4px;
-  }
+  .settings-grid label{display:block;font-family:var(--mono);font-size:0.72rem;color:#666;margin-bottom:4px;}
   .settings-grid input{
-    width:100%;
-    padding:8px 10px;
-    border:1px solid var(--line);
-    border-radius:6px;
-    font-family:var(--mono);
-    font-size:0.85rem;
+    width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;
+    font-family:var(--mono);font-size:0.85rem;
     transition:border-color .15s ease, box-shadow .15s ease;
   }
-  .settings-grid input:focus{
-    outline:none;
-    border-color:var(--accent);
-    box-shadow:0 0 0 3px var(--accent-dim);
-  }
-  @media (max-width:520px){
-    .settings-grid{grid-template-columns:1fr;}
+  .settings-grid input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+  @media (max-width:520px){.settings-grid{grid-template-columns:1fr;}}
+
+  @media (prefers-reduced-motion: reduce){
+    *{transition:none !important;}
   }
 </style>
 </head>
-<body>
+<body data-shift="day">
 <div class="wrap">
+
+  <div class="shift-panel">
+    <div class="shift-rivets"><span></span><span></span><span></span><span></span></div>
+    <div class="shift-panel-top">
+      <div class="shift-eyebrow">Select active shift</div>
+      <div class="shift-readout" id="shiftReadout">Day · 06:00–18:00</div>
+    </div>
+    <div class="shift-switch" id="shiftSwitch">
+      <div class="shift-thumb"></div>
+      <button type="button" class="shift-option active" data-shift="day">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v3M12 18.5v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2.5 12h3M18.5 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+        Day shift
+      </button>
+      <button type="button" class="shift-option" data-shift="night">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 14.5A8.5 8.5 0 1 1 9.5 4a6.7 6.7 0 0 0 10.5 10.5z"/></svg>
+        Night shift
+      </button>
+    </div>
+    <div class="shift-sub">Each shift keeps its own checklist, times and log entries.</div>
+  </div>
 
   <header>
     <div class="brand">
       <div class="logo-spot">
         <img id="appLogo" src="albioma-logo.png" alt="Logo" class="app-logo" onError="this.style.display='none'; document.getElementById('fallbackIcon').style.display='block';" />
-        <svg id="fallbackIcon" viewBox="0 0 48 48" width="52" height="52" style="display:none;">
+        <svg id="fallbackIcon" viewBox="0 0 48 48" width="46" height="46" style="display:none;">
           <circle cx="24" cy="24" r="22" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
           <path d="M14 25l7 7 13-15" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       </div>
       <div>
-        <div class="tag">Shift checklist</div>
+        <div class="tag" id="headerTag">Day shift checklist</div>
         <h1>Daily Checks Log</h1>
       </div>
     </div>
     <div class="meta" id="clock"></div>
   </header>
 
-  <div id="unsavedBanner" style="display:none; background:#fdf1ea; border:1px solid var(--warn); color:var(--warn); border-radius:8px; padding:10px 14px; margin-bottom:18px; font-family:var(--mono); font-size:0.82rem; font-weight:600;">
-    ⚠ Unsaved changes — click "Save &amp; push now" before closing this page.
-  </div>
+  <div class="unsaved-banner" id="unsavedBanner">⚠ Unsaved changes — click "Save &amp; push now" before closing this page.</div>
 
   <div class="operator-row">
     <div>
@@ -382,31 +415,17 @@
   </div>
 
   <details class="settings" id="settingsBox">
-    <summary>🔒 GitHub & App settings (PIN protected)</summary>
+    <summary>🔒 GitHub &amp; app settings (PIN protected)</summary>
     <div class="settings-grid">
       <div class="full">
         <label for="ghToken">Personal Access Token (repo scope)</label>
         <input type="password" id="ghToken" placeholder="ghp_...">
       </div>
-      <div>
-        <label for="ghOwner">Repo owner</label>
-        <input type="text" id="ghOwner" placeholder="your-username">
-      </div>
-      <div>
-        <label for="ghRepo">Repo name</label>
-        <input type="text" id="ghRepo" placeholder="checklist-repo">
-      </div>
-      <div>
-        <label for="ghBranch">Branch</label>
-        <input type="text" id="ghBranch" placeholder="main" value="main">
-      </div>
-      <div>
-        <label for="ghPath">Log file path</label>
-        <input type="text" id="ghPath" placeholder="log.xlsx" value="log.xlsx">
-      </div>
-      <div class="full">
-        <button class="btn-ghost" id="saveSettings" type="button">Save settings</button>
-      </div>
+      <div><label for="ghOwner">Repo owner</label><input type="text" id="ghOwner" placeholder="your-username"></div>
+      <div><label for="ghRepo">Repo name</label><input type="text" id="ghRepo" placeholder="checklist-repo"></div>
+      <div><label for="ghBranch">Branch</label><input type="text" id="ghBranch" placeholder="main" value="main"></div>
+      <div><label for="ghPath">Log file path</label><input type="text" id="ghPath" placeholder="log.xlsx" value="log.xlsx"></div>
+      <div class="full"><button class="btn-ghost" id="saveSettings" type="button">Save settings</button></div>
       <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:14px;">
         <label for="newPin">Set / change PIN (leave blank for no lock)</label>
         <input type="password" id="newPin" placeholder="4+ digit PIN" inputmode="numeric">
@@ -421,51 +440,54 @@
 
   <section class="block" data-section="Before Startup">
     <div class="block-head">
-      <h2>🟢Start Of Shift / Before Startup</h2>
-      <span class="count">0 / 5</span>
+      <h2><span class="swatch"></span>Start of Shift / Before Startup</h2>
+      <span class="count">0 / 3</span>
     </div>
     <div class="items">
       <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon is OK</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon Tank is On "operational Level</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Water Sprayers are Functioning Correctly</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon Tank is on operational level</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check water sprayers are functioning correctly</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
     </div>
   </section>
 
   <section class="block" data-section="During Processing">
     <div class="block-head">
-      <h2>🟡 During Processing</h2>
+      <h2><span class="swatch"></span>During Processing</h2>
       <span class="count">0 / 5</span>
     </div>
     <div class="items">
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Mill Adjustment Sheet is Up to Date</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 9 AM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 3 PM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 9 PM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge Mills with 200 pumps each @ 3 AM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect & Clean Steam Vent @ 530 PM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect & Clean Steam Vent @ 530 AM</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty Drop Box At End of Shift</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div> 
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Mill Adjustment Sheet is up to date</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+
+      <div class="item-row" data-shift="day"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip day">9 AM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row" data-shift="day"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip day">3 PM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row" data-shift="day"><label class="item"><input type="checkbox"><span>Inspect &amp; clean steam vent<span class="shift-chip day">5:30 PM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+
+      <div class="item-row" data-shift="night"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip night">9 PM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row" data-shift="night"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip night">3 AM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row" data-shift="night"><label class="item"><input type="checkbox"><span>Inspect &amp; clean steam vent<span class="shift-chip night">5:30 AM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty drop box at end of shift</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
     </div>
   </section>
 
   <section class="block" data-section="Once a Week">
     <div class="block-head">
-      <h2>🔵 Once a Week</h2>
-      <span class="count">0 / 5</span>
+      <h2><span class="swatch"></span>Once a Week</h2>
+      <span class="count">0 / 4</span>
     </div>
     <div class="items">
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Deep Clean Around Mills </span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Clean Diverters / Shavings 1 into 2 Transition</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Drinking Water Tank Level</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty All Bins And Wheel Barrows</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Deep clean around mills</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Clean diverters / shavings 1 into 2 transition</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check drinking water tank level</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty all bins and wheel barrows</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
     </div>
   </section>
 
   <textarea class="notes" id="sessionNotes" placeholder="Optional notes for this session..."></textarea>
 
   <div class="actions">
-    <button class="btn-primary" id="pushBtn">Save & push now</button>
-    <button class="btn-ghost" id="resetBtn" type="button">Reset checklist</button>
+    <button class="btn-primary" id="pushBtn">Save &amp; push now</button>
+    <button class="btn-ghost" id="resetBtn" type="button">Reset this shift's checklist</button>
   </div>
   <div style="font-family:var(--mono);font-size:0.72rem;color:#888;margin-top:6px;">Auto-save is off — click "Save &amp; push now" to log changes. You'll get a warning if you try to leave the page with unsaved changes.</div>
   <div id="status"></div>
@@ -473,23 +495,37 @@
 </div>
 
 <script>
-// ---------- session identity (used to update-in-place during autosave) ----------
-// Persisted so a page reload continues the SAME session instead of orphaning
-// the previous session's rows in the log (which was causing duplicates).
-// A new session only starts when "Reset checklist" is clicked.
+/* ============================================================
+   SHIFT STATE
+   ============================================================ */
+function defaultShiftForNow(){
+  const h = new Date().getHours();
+  return (h >= 6 && h < 18) ? 'day' : 'night';
+}
+let currentShift = localStorage.getItem('checklist_last_shift') || defaultShiftForNow();
+
+function todayKey(){ return new Date().toISOString().slice(0,10); }
+
+/* Each shift gets its own session id, scoped to today's date, so day and
+   night crews on the same calendar date never collide or overwrite rows. */
 function newSessionId(){
   return 'S-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2,7);
 }
-let sessionId = localStorage.getItem('checklist_session_id');
-const today = new Date().toISOString().slice(0,10);
-const storedSessionDate = localStorage.getItem('checklist_session_date');
-if(!sessionId || storedSessionDate !== today){
-  sessionId = newSessionId();
-  localStorage.setItem('checklist_session_id', sessionId);
-  localStorage.setItem('checklist_session_date', today);
+function sessionIdFor(shift){
+  const dateKey = 'checklist_session_date_' + shift;
+  const idKey = 'checklist_session_id_' + shift;
+  const today = todayKey();
+  if(localStorage.getItem(dateKey) !== today){
+    localStorage.setItem(dateKey, today);
+    localStorage.setItem(idKey, newSessionId());
+  } else if(!localStorage.getItem(idKey)){
+    localStorage.setItem(idKey, newSessionId());
+  }
+  return localStorage.getItem(idKey);
 }
+let sessionId = sessionIdFor(currentShift);
 
-// ---------- clock ----------
+/* ---------- clock ---------- */
 function tick(){
   const now = new Date();
   document.getElementById('clock').textContent = now.toLocaleString();
@@ -497,7 +533,7 @@ function tick(){
 }
 tick(); setInterval(tick, 1000);
 
-// ---------- settings persistence ----------
+/* ---------- settings persistence ---------- */
 const fields = ['ghToken','ghOwner','ghRepo','ghBranch','ghPath'];
 fields.forEach(id=>{
   const saved = localStorage.getItem('checklist_'+id);
@@ -510,7 +546,7 @@ document.getElementById('saveSettings').addEventListener('click', ()=>{
   setStatus('Settings saved locally in this browser.', 'ok');
 });
 
-// ---------- PIN lock ----------
+/* ---------- PIN lock ---------- */
 function simpleHash(str){
   let h = 0;
   for(let i=0;i<str.length;i++){ h = (h*31 + str.charCodeAt(i)) >>> 0; }
@@ -519,17 +555,13 @@ function simpleHash(str){
 let settingsUnlocked = false;
 const settingsBox = document.getElementById('settingsBox');
 const pinStatusEl = document.getElementById('pinStatus');
-
-function pinIsSet(){
-  return !!localStorage.getItem('checklist_pin_hash');
-}
+function pinIsSet(){ return !!localStorage.getItem('checklist_pin_hash'); }
 function refreshPinStatus(){
   pinStatusEl.textContent = pinIsSet()
     ? 'Settings are PIN-locked.'
     : 'No PIN set — anyone opening this page can view/edit GitHub settings.';
 }
 refreshPinStatus();
-
 settingsBox.addEventListener('toggle', ()=>{
   if(settingsBox.open && pinIsSet() && !settingsUnlocked){
     settingsBox.open = false;
@@ -543,7 +575,6 @@ settingsBox.addEventListener('toggle', ()=>{
     }
   }
 });
-
 document.getElementById('setPinBtn').addEventListener('click', ()=>{
   const val = document.getElementById('newPin').value.trim();
   if(val === ''){
@@ -552,58 +583,70 @@ document.getElementById('setPinBtn').addEventListener('click', ()=>{
   } else {
     localStorage.setItem('checklist_pin_hash', simpleHash(val));
     settingsUnlocked = true;
-    setStatus('PIN saved. You\'ll need it next time settings are opened.', 'ok');
+    setStatus("PIN saved. You'll need it next time settings are opened.", 'ok');
   }
   document.getElementById('newPin').value = '';
   refreshPinStatus();
 });
-
 document.getElementById('lockNowBtn').addEventListener('click', ()=>{
   settingsUnlocked = false;
   settingsBox.open = false;
   setStatus('Settings locked.', 'ok');
 });
 
-// ---------- local same-day persistence ----------
-// Keeps checked items, times, comments, operator name and notes if the page
-// is closed/reopened on the SAME day. A new day (or manual reset) starts fresh.
-const LOCAL_STATE_KEY = 'checklist_localstate_' + today;
-
-function collectItemRows(){
-  return Array.from(document.querySelectorAll('.item-row'));
+/* ============================================================
+   SHIFT VISIBILITY — rows tagged data-shift show only for that shift;
+   untagged rows are shared and shown for both.
+   ============================================================ */
+function applyShiftVisibility(){
+  document.querySelectorAll('.item-row').forEach(row=>{
+    const rowShift = row.dataset.shift;
+    row.hidden = !!(rowShift && rowShift !== currentShift);
+  });
 }
 
-function saveLocalState(){
-  const items = collectItemRows().map(row=>({
+/* ---------- local same-day-and-shift persistence ---------- */
+function localStateKey(shift){ return 'checklist_localstate_' + todayKey() + '_' + shift; }
+
+function allItemRows(){ return Array.from(document.querySelectorAll('.item-row')); }
+function visibleItemRows(){ return allItemRows().filter(r => !r.hidden); }
+
+function saveLocalState(shift){
+  const items = allItemRows().map(row=>({
     checked: row.querySelector('input[type=checkbox]').checked,
     time: row.querySelector('.item-time').value,
     comment: row.querySelector('.item-comment').value
   }));
   const state = {
-    date: today,
+    date: todayKey(),
     operatorName: document.getElementById('operatorName').value,
     sessionNotes: document.getElementById('sessionNotes').value,
     items
   };
-  try{
-    localStorage.setItem(LOCAL_STATE_KEY, JSON.stringify(state));
-  } catch(e){
-    console.error('Could not save local checklist state', e);
-  }
+  try{ localStorage.setItem(localStateKey(shift), JSON.stringify(state)); }
+  catch(e){ console.error('Could not save local checklist state', e); }
 }
 
-function restoreLocalState(){
+function restoreLocalState(shift){
   let raw;
-  try{ raw = localStorage.getItem(LOCAL_STATE_KEY); } catch(e){ return; }
+  try{ raw = localStorage.getItem(localStateKey(shift)); } catch(e){ return; }
+  document.getElementById('operatorName').value = '';
+  document.getElementById('sessionNotes').value = '';
+  allItemRows().forEach(row=>{
+    const checkbox = row.querySelector('input[type=checkbox]');
+    checkbox.checked = false;
+    row.querySelector('.item span').classList.remove('checked-text');
+    row.querySelector('.item-time').value = '';
+    row.querySelector('.item-comment').value = '';
+  });
   if(!raw) return;
   let state;
   try{ state = JSON.parse(raw); } catch(e){ return; }
-  if(!state || state.date !== today) return;
+  if(!state || state.date !== todayKey()) return;
 
   document.getElementById('operatorName').value = state.operatorName || '';
   document.getElementById('sessionNotes').value = state.sessionNotes || '';
-
-  collectItemRows().forEach((row, i)=>{
+  allItemRows().forEach((row, i)=>{
     const saved = state.items && state.items[i];
     if(!saved) return;
     const checkbox = row.querySelector('input[type=checkbox]');
@@ -614,15 +657,14 @@ function restoreLocalState(){
   });
 }
 
-function clearLocalState(){
-  try{ localStorage.removeItem(LOCAL_STATE_KEY); } catch(e){}
+function clearLocalState(shift){
+  try{ localStorage.removeItem(localStateKey(shift)); } catch(e){}
 }
 
-// ---------- unsaved changes tracking ----------
+/* ---------- unsaved changes tracking ---------- */
 let hasUnsavedChanges = false;
 const baseTitle = document.title;
 const unsavedBanner = document.getElementById('unsavedBanner');
-
 function updateUnsavedIndicator(){
   if(hasUnsavedChanges){
     unsavedBanner.style.display = 'block';
@@ -632,28 +674,24 @@ function updateUnsavedIndicator(){
     document.title = baseTitle;
   }
 }
-
 function markDirty(){
   hasUnsavedChanges = true;
   updateUnsavedIndicator();
-  saveLocalState();
+  saveLocalState(currentShift);
 }
-
 window.addEventListener('beforeunload', (e)=>{
-  if(hasUnsavedChanges){
-    e.preventDefault();
-    e.returnValue = ''; // required for Chrome to show the native confirmation dialog
-    return '';
-  }
+  if(hasUnsavedChanges){ e.preventDefault(); e.returnValue = ''; return ''; }
 });
 
-// ---------- checklist behavior ----------
+/* ---------- checklist behavior ---------- */
 function updateCounts(){
   document.querySelectorAll('.block').forEach(block=>{
-    const boxes = block.querySelectorAll('input[type=checkbox]');
-    const checked = [...boxes].filter(b=>b.checked).length;
+    const boxes = [...block.querySelectorAll('.item-row')]
+      .filter(r => !r.hidden)
+      .map(r => r.querySelector('input[type=checkbox]'));
+    const checked = boxes.filter(b=>b.checked).length;
     block.querySelector('.count').textContent = `${checked} / ${boxes.length}`;
-    block.classList.toggle('done', checked === boxes.length);
+    block.classList.toggle('done', boxes.length > 0 && checked === boxes.length);
   });
 }
 document.querySelectorAll('input[type=checkbox]').forEach(box=>{
@@ -663,25 +701,25 @@ document.querySelectorAll('input[type=checkbox]').forEach(box=>{
     markDirty();
   });
 });
-restoreLocalState();
-updateCounts();
 
 document.getElementById('resetBtn').addEventListener('click', ()=>{
-  sessionId = newSessionId();
-  localStorage.setItem('checklist_session_id', sessionId);
-  localStorage.setItem('checklist_session_date', new Date().toISOString().slice(0,10));
-  document.querySelectorAll('input[type=checkbox]').forEach(b=>{
+  localStorage.setItem('checklist_session_date_' + currentShift, todayKey());
+  localStorage.setItem('checklist_session_id_' + currentShift, newSessionId());
+  sessionId = sessionIdFor(currentShift);
+  allItemRows().forEach(row=>{
+    const b = row.querySelector('input[type=checkbox]');
     b.checked = false;
-    b.closest('.item').querySelector('span').classList.remove('checked-text');
+    row.querySelector('.item span').classList.remove('checked-text');
+    row.querySelector('.item-time').value = '';
+    row.querySelector('.item-comment').value = '';
   });
-  document.querySelectorAll('.item-comment').forEach(c=> c.value = '');
-  document.querySelectorAll('.item-time').forEach(t=> t.value = '');
   document.getElementById('sessionNotes').value = '';
   document.getElementById('operatorName').value = '';
   updateCounts();
   hasUnsavedChanges = false;
-  clearLocalState();
-  setStatus('Checklist reset.', 'ok');
+  updateUnsavedIndicator();
+  clearLocalState(currentShift);
+  setStatus(`${currentShift === 'day' ? 'Day' : 'Night'} shift checklist reset.`, 'ok');
 });
 
 function setStatus(msg, cls){
@@ -690,28 +728,73 @@ function setStatus(msg, cls){
   el.className = cls || '';
 }
 
-// ---------- gather rows ----------
+/* ============================================================
+   SHIFT SWITCHING
+   ============================================================ */
+const shiftReadout = document.getElementById('shiftReadout');
+const headerTag = document.getElementById('headerTag');
+
+function renderShiftChrome(){
+  document.body.dataset.shift = currentShift;
+  document.querySelectorAll('.shift-option').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.shift === currentShift);
+  });
+  if(currentShift === 'day'){
+    shiftReadout.textContent = 'Day · 06:00–18:00';
+    headerTag.textContent = 'Day shift checklist';
+  } else {
+    shiftReadout.textContent = 'Night · 18:00–06:00';
+    headerTag.textContent = 'Night shift checklist';
+  }
+  applyShiftVisibility();
+  updateCounts();
+}
+
+function switchShift(nextShift){
+  if(nextShift === currentShift) return;
+  saveLocalState(currentShift);
+  currentShift = nextShift;
+  localStorage.setItem('checklist_last_shift', currentShift);
+  sessionId = sessionIdFor(currentShift);
+  restoreLocalState(currentShift);
+  renderShiftChrome();
+  hasUnsavedChanges = false;
+  updateUnsavedIndicator();
+  setStatus(`Switched to ${currentShift === 'day' ? 'day' : 'night'} shift.`, 'ok');
+}
+
+document.querySelectorAll('.shift-option').forEach(btn=>{
+  btn.addEventListener('click', ()=> switchShift(btn.dataset.shift));
+});
+
+/* initial render for the shift we started on */
+restoreLocalState(currentShift);
+renderShiftChrome();
+
+/* ---------- gather rows for export/push ---------- */
 function gatherRows(){
   const now = new Date();
   const date = now.toISOString().slice(0,10);
   const operator = document.getElementById('operatorName').value.trim() || '(not entered)';
   const sessionNotes = document.getElementById('sessionNotes').value.trim();
+  const shiftLabel = currentShift === 'day' ? 'Day' : 'Night';
   const rows = [];
   document.querySelectorAll('.block').forEach(block=>{
     const section = block.dataset.section;
     block.querySelectorAll('.item-row').forEach(row=>{
+      if(row.hidden) return;
       const input = row.querySelector('input[type=checkbox]');
       const checked = input.checked;
-      const text = row.querySelector('.item span').textContent;
+      const text = row.querySelector('.item span').childNodes[0].textContent.trim();
       const time = row.querySelector('.item-time').value.trim() || '(not entered)';
       const comment = row.querySelector('.item-comment').value.trim();
-      rows.push([date, time, operator, section, text, checked ? 'Y' : 'N', comment, sessionNotes, sessionId]);
+      rows.push([date, shiftLabel, time, operator, section, text, checked ? 'Y' : 'N', comment, sessionNotes, sessionId]);
     });
   });
   return rows;
 }
 
-// ---------- GitHub push ----------
+/* ---------- GitHub push ---------- */
 let pushInFlight = false;
 async function doPush(){
   const token = document.getElementById('ghToken').value.trim();
@@ -725,26 +808,18 @@ async function doPush(){
     document.getElementById('settingsBox').open = true;
     return;
   }
-
   if(!document.getElementById('operatorName').value.trim()){
     setStatus('Enter the operator name before pushing.', 'err');
     document.getElementById('operatorName').focus();
     return;
   }
-
-  if(pushInFlight){
-    return;
-  }
+  if(pushInFlight) return;
   pushInFlight = true;
   document.getElementById('pushBtn').disabled = true;
 
   const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
-  const headers = {
-    'Authorization': `token ${token}`,
-    'Accept': 'application/vnd.github+json'
-  };
-  const emptyLog = [['Date','Time','Operator','Section','Item','Checked','Item Comment','Session Notes','Session ID']];
-
+  const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' };
+  const emptyLog = [['Date','Shift','Time','Operator','Section','Item','Checked','Item Comment','Session Notes','Session ID']];
   const MAX_ATTEMPTS = 4;
 
   try{
@@ -767,17 +842,15 @@ async function doPush(){
         const wb = XLSX.read(bytes, { type:'array' });
         const ws = wb.Sheets[wb.SheetNames[0]];
         existingRows = XLSX.utils.sheet_to_json(ws, { header:1 });
-        if(existingRows.length === 0){
-          existingRows = emptyLog;
-        }
+        if(existingRows.length === 0) existingRows = emptyLog;
       } else if(getResp.status !== 404){
         const errText = await getResp.text();
         throw new Error(`GitHub read failed (${getResp.status}): ${errText}`);
       }
 
-      // Drop any rows previously auto-saved by this session, so autosave
-      // updates in place instead of piling up duplicate row-sets.
-      const filteredRows = existingRows.filter(row => row[8] !== sessionId);
+      // Drop rows previously auto-saved by this session (last column = session id),
+      // so saving again updates in place instead of duplicating rows.
+      const filteredRows = existingRows.filter(row => row[9] !== sessionId);
 
       const newRows = gatherRows();
       newRowsCount = newRows.length;
@@ -793,42 +866,27 @@ async function doPush(){
       for(let i=0;i<bytes2.length;i++) binaryStr += String.fromCharCode(bytes2[i]);
       const base64Content = btoa(binaryStr);
 
-      const putBody = {
-        message: `Checklist log update ${new Date().toISOString()}`,
-        content: base64Content,
-        branch: branch
-      };
+      const putBody = { message: `Checklist log update ${new Date().toISOString()}`, content: base64Content, branch: branch };
       if(sha) putBody.sha = sha;
 
-      const putResp = await fetch(apiBase, {
-        method: 'PUT',
-        headers: { ...headers, 'Content-Type': 'application/json' },
-        body: JSON.stringify(putBody)
-      });
+      const putResp = await fetch(apiBase, { method:'PUT', headers:{ ...headers, 'Content-Type':'application/json' }, body: JSON.stringify(putBody) });
 
-      if(putResp.ok){
-        lastErr = null;
-        break;
-      }
+      if(putResp.ok){ lastErr = null; break; }
 
       const errText = await putResp.text();
-
-      // 409 = someone else (another tab/device/session) wrote to the file
-      // between our read and write. Back off briefly and retry with a
-      // fresh read instead of failing outright.
       if(putResp.status === 409 && attempt < MAX_ATTEMPTS){
         lastErr = new Error(`GitHub write failed (${putResp.status}): ${errText}`);
         await new Promise(r => setTimeout(r, 400 * attempt + Math.random()*300));
         continue;
       }
-
       throw new Error(`GitHub write failed (${putResp.status}): ${errText}`);
     }
 
     if(lastErr) throw lastErr;
 
     hasUnsavedChanges = false;
-    setStatus(`Logged ${newRowsCount} rows to ${path} on ${branch}.`, 'ok');
+    updateUnsavedIndicator();
+    setStatus(`Logged ${newRowsCount} rows (${currentShift} shift) to ${path} on ${branch}.`, 'ok');
   } catch(err){
     console.error(err);
     setStatus('Error: ' + err.message, 'err');
@@ -837,18 +895,11 @@ async function doPush(){
     pushInFlight = false;
   }
 }
+document.getElementById('pushBtn').addEventListener('click', doPush);
 
-document.getElementById('pushBtn').addEventListener('click', ()=>{
-  doPush();
-});
-
-// Mark checklist as having unsaved changes on any edit (save is manual now)
-document.querySelectorAll('input[type=checkbox], .item-time').forEach(el=>{
-  el.addEventListener('change', markDirty);
-});
-document.querySelectorAll('.item-comment').forEach(el=>{
-  el.addEventListener('input', markDirty);
-});
+/* Mark checklist as having unsaved changes on any edit (save is manual) */
+document.querySelectorAll('input[type=checkbox], .item-time').forEach(el=> el.addEventListener('change', markDirty));
+document.querySelectorAll('.item-comment').forEach(el=> el.addEventListener('input', markDirty));
 document.getElementById('operatorName').addEventListener('input', markDirty);
 document.getElementById('sessionNotes').addEventListener('input', markDirty);
 </script>
