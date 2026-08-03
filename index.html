@@ -38,13 +38,135 @@
     --accent-soft:var(--day-accent-soft);
     --accent-glow:var(--day-glow);
   }
+body[data-shift="night"]{
+  /* Dark mode colours */
+  --paper:#000000;
+  --panel:#11*111;
+  --ink:#ffffff;
+  --line:#2a2a2a;
 
-  body[data-shift="night"]{
-    --accent:var(--night-accent);
-    --accent-deep:var(--night-accent-deep);
-    --accent-dim:var(--night-accent-dim);
-    --accent-soft:var(--night-accent-soft);
-    --accent-glow:var(--night-glow);
+  /* Night accent colours */
+  --accent:#8aa4ff;
+  --*ccent-deep:#6788ff;
+  --accent-dim*#1c2235;
+  --*ccent-soft:#111827;
+  --*ccent-glow:rgba(138,164,255,0.15);*
+  color-scheme:dark;
+  /* ============================================================
+   NIGHT SHIFT DARK MODE OVERRIDES
+   ============================================================ */
+
+body[data-shift="night"] .shift-panel{
+  background:linear-gradient(
+    155deg,
+    #1b1b1b 0%,
+    #111111 50%,
+    #080808 100%
+  );
+  border-color:#2a2a2a;
+}
+
+body[data-shift="night"] .shift-eyebrow,
+body[data-shift="night"] .shift-sub,
+body[data-shift="night"] .meta,
+body[data-shift="night"] .operator-row label,
+body[data-shift="night"] .settings summary,
+body[data-shift="night"] .settings-grid label{
+  color:#bdbdbd;
+}
+
+body[data-shift="night"] section.block,
+body[data-shift="night"] .operator-row,
+body[data-shift="night"] .settings{
+  background:#111111;
+  border-color:#2a2a2a;
+}
+
+body[data-shift="night"] .block-head{
+  background:
+    linear-gradient(
+      180deg,
+      rgba(138,164,255,0.08),
+      transparent
+    );
+}
+
+body[data-shift="night"] .count{
+  background:#1a1a1a;
+  border-color:#333;
+  color:#ddd;
+}
+
+body[data-shift="night"] .item-row{
+  border-top-color:#2a2a2a;
+}
+
+body[data-shift="night"] .notes,
+body[data-shift="night"] input[type="text"],
+body[data-shift="night"] input[type="password"],
+body[data-shift="night"] input[type="time"],
+body[data-shift="night"] textarea{
+  background:#151515;
+  color:#fff;
+  border-color:#333;
+}
+
+body[data-shift="night"] input:read-only{
+  background:#1a1a1a;
+  color:#fff;
+}
+
+body[data-shift="night"] .item-time-wrap{
+  background:#171717;
+  border-color:#333;
+}
+
+body[data-shift="night"] .btn-ghost{
+  background:#151515;
+  border-color:#333;
+  color:#fff;
+}
+
+body[data-shift="night"] .btn-ghost:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+}
+
+body[data-shift="night"] .item-comment,
+body[data-shift="night"] .notes{
+  color:#fff;
+}
+
+body[data-shift="night"] .item-comment::placeholder,
+body[data-shift="night"] textarea::placeholder,
+body[data-shift="night"] input::placeholder{
+  color:#888;
+}
+
+body[data-shift="night"] .unsaved-banner{
+  background:#2b180f;
+  border-color:#b15d42;
+  color:#ffb59d;
+}
+
+body[data-shift="night"] header{
+  border-bottom-color:#ffffff;
+}
+
+body[data-shift="night"] .shift-chip.day{
+  background:#3d2a10;
+  color:#ffcf75;
+}
+
+body[data-shift="night"] .shift-chip.night{
+  background:#1c2235;
+  color:#8aa4ff;
+}
+
+body[data-shift="night"] .app-logo{
+  filter:brightness(0) invert(1);
+}
+}
   }
 
   *{box-sizing:border-box;}
