@@ -876,9 +876,35 @@ function updateCounts(){
 }
 document.querySelectorAll('input[type=checkbox]').forEach(box=>{
   box.addEventListener('change', ()=>{
+    const row = box.closest('.item-row');
+    const timeInput = row.querySelector('.item-time');
+    if(box.checked && !timeInput.value){
+      box.checked = false;
+      alert('You must select the time the task was completed before checking it off.');
+      setStatus('Enter the time before checking this item off.', 'err');
+      timeInput.focus();
+      return;
+    }
     box.closest('.item').querySelector('span').classList.toggle('checked-text', box.checked);
     updateCounts();
     markDirty();
+  });
+});
+
+/* If the time is cleared after an item was checked off, uncheck it too —
+   time stays mandatory for a checked state at all times, not just at the
+   moment the box is ticked. */
+document.querySelectorAll('.item-time').forEach(timeInput=>{
+  timeInput.addEventListener('change', ()=>{
+    if(!timeInput.value){
+      const row = timeInput.closest('.item-row');
+      const box = row.querySelector('input[type=checkbox]');
+      if(box.checked){
+        box.checked = false;
+        row.querySelector('.item span').classList.remove('checked-text');
+        updateCounts();
+      }
+    }
   });
 });
 
