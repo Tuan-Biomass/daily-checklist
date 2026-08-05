@@ -477,6 +477,28 @@ body[data-shift="night"] .app-logo{
   .settings-grid input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
   @media (max-width:520px){.settings-grid{grid-template-columns:1fr;}}
 
+  /* ---------- history log (inside settings) ---------- */
+  .history-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  #historyStatus{font-family:var(--mono);font-size:0.74rem;color:#777;}
+  .history-table-wrap{
+    margin-top:10px;max-height:320px;overflow:auto;
+    border:1px solid var(--line);border-radius:8px;background:var(--panel);
+  }
+  table.history-table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:0.74rem;}
+  table.history-table th{
+    position:sticky;top:0;background:var(--accent-soft);color:#555;
+    text-align:left;padding:7px 9px;border-bottom:1px solid var(--line);
+    text-transform:uppercase;letter-spacing:0.03em;font-size:0.66rem;white-space:nowrap;
+  }
+  table.history-table td{padding:6px 9px;border-bottom:1px solid #eee;vertical-align:top;}
+  table.history-table tr:last-child td{border-bottom:none;}
+  table.history-table td.hist-check-y{color:#4a7a5c;font-weight:600;}
+  table.history-table td.hist-check-n{color:#999;}
+  body[data-shift="night"] .history-table-wrap{background:#111111;border-color:#2a2a2a;}
+  body[data-shift="night"] table.history-table th{background:#171717;color:#bdbdbd;border-color:#2a2a2a;}
+  body[data-shift="night"] table.history-table td{border-color:#2a2a2a;color:#fff;}
+  body[data-shift="night"] table.history-table td.hist-check-n{color:#777;}
+
   @media (prefers-reduced-motion: reduce){
     *{transition:none !important;}
   }
@@ -554,6 +576,22 @@ body[data-shift="night"] .app-logo{
       <div class="full">
         <button class="btn-ghost" id="setPinBtn" type="button">Save PIN</button>
         <button class="btn-ghost" id="lockNowBtn" type="button">Lock now</button>
+      </div>
+      <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:14px;">
+        <label>History log</label>
+        <div class="history-actions">
+          <button class="btn-ghost" id="loadHistoryBtn" type="button">Load history from GitHub</button>
+          <input type="text" id="historyFilter" placeholder="Filter (operator, section, item...)" style="flex:1;min-width:160px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;font-family:var(--sans);font-size:0.82rem;">
+          <span id="historyStatus"></span>
+        </div>
+        <div class="history-table-wrap" id="historyTableWrap" style="display:none;">
+          <table class="history-table" id="historyTable">
+            <thead>
+              <tr><th>Date</th><th>Shift</th><th>Time</th><th>Operator</th><th>Section</th><th>Item</th><th>Checked</th><th>Comment</th></tr>
+            </thead>
+            <tbody id="historyTableBody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
   </details>
@@ -1103,6 +1141,95 @@ async function doPush(){
   }
 }
 document.getElementById('pushBtn').addEventListener('click', doPush);
+
+/* ---------- history log viewer (settings panel) ---------- */
+let historyRowsCache = null;
+
+async function loadHistoryLog(){
+  const token = document.getElementById('ghToken').value.trim();
+  const owner = document.getElementById('ghOwner').value.trim();
+  const repo  = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim() || 'main';
+  const path  = document.getElementById('ghPath').value.trim() || 'log.xlsx';
+  const historyStatus = document.getElementById('historyStatus');
+  const loadBtn = document.getElementById('loadHistoryBtn');
+
+  if(!token || !owner || !repo){
+    historyStatus.textContent = 'Fill in GitHub settings first (token, owner, repo).';
+    return;
+  }
+
+  loadBtn.disabled = true;
+  historyStatus.textContent = 'Loading...';
+
+  const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
+  const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' };
+
+  try{
+    const getResp = await fetch(`${apiBase}?ref=${branch}`, { headers });
+    if(getResp.status === 404){
+      historyRowsCache = [];
+      renderHistoryTable([]);
+      historyStatus.textContent = 'No log file found yet at this path.';
+      return;
+    }
+    if(getResp.status !== 200){
+      const errText = await getResp.text();
+      throw new Error(`GitHub read failed (${getResp.status}): ${errText}`);
+    }
+    const data = await getResp.json();
+    const binary = atob(data.content.replace(/\n/g,''));
+    const bytes = new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
+    const wb = XLSX.read(bytes, { type:'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    let rows = XLSX.utils.sheet_to_json(ws, { header:1 });
+    rows = rows.slice(1); // drop header row
+    rows.reverse(); // most recent entries first
+    historyRowsCache = rows;
+    renderHistoryTable(rows);
+    historyStatus.textContent = `Loaded ${rows.length} rows from ${path} on ${branch}.`;
+  } catch(err){
+    console.error(err);
+    historyStatus.textContent = 'Error: ' + err.message;
+  } finally {
+    loadBtn.disabled = false;
+  }
+}
+
+function renderHistoryTable(rows){
+  const wrap = document.getElementById('historyTableWrap');
+  const body = document.getElementById('historyTableBody');
+  body.innerHTML = '';
+  if(!rows || rows.length === 0){
+    wrap.style.display = 'none';
+    return;
+  }
+  wrap.style.display = 'block';
+  rows.forEach(row=>{
+    const tr = document.createElement('tr');
+    // Column order matches the log: date, shift, time, operator, section, item, checked, comment
+    const cells = [row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]];
+    cells.forEach((val, i)=>{
+      const td = document.createElement('td');
+      td.textContent = (val === undefined || val === null) ? '' : val;
+      if(i === 6) td.classList.add(val === 'Y' ? 'hist-check-y' : 'hist-check-n');
+      tr.appendChild(td);
+    });
+    body.appendChild(tr);
+  });
+}
+
+document.getElementById('loadHistoryBtn').addEventListener('click', loadHistoryLog);
+document.getElementById('historyFilter').addEventListener('input', ()=>{
+  if(!historyRowsCache) return;
+  const q = document.getElementById('historyFilter').value.trim().toLowerCase();
+  if(!q){ renderHistoryTable(historyRowsCache); return; }
+  const filtered = historyRowsCache.filter(row =>
+    row.some(cell => String(cell ?? '').toLowerCase().includes(q))
+  );
+  renderHistoryTable(filtered);
+});
 
 /* Mark checklist as having unsaved changes on any edit (save is manual) */
 document.querySelectorAll('input[type=checkbox], .item-time').forEach(el=> el.addEventListener('change', markDirty));
