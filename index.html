@@ -39,31 +39,32 @@
     --accent-glow:var(--day-glow);
   }
 body[data-shift="night"]{
-  /* Dark mode colours */
-  --paper:#000000;
-  --panel:#11*111;
-  --ink:#ffffff;
-  --line:#2a2a2a;
+  /* Dark mode colours — softened, not pure black */
+  --paper:#16181c;
+  --panel:#1f2226;
+  --ink:#e9eaec;
+  --line:#33373d;
 
   /* Night accent colours */
   --accent:#8aa4ff;
-  --*ccent-deep:#6788ff;
-  --accent-dim*#1c2235;
-  --*ccent-soft:#111827;
-  --*ccent-glow:rgba(138,164,255,0.15);*
+  --accent-deep:#6788ff;
+  --accent-dim:#232a45;
+  --accent-soft:#20242e;
+  --accent-glow:rgba(138,164,255,0.12);
   color-scheme:dark;
-  /* ============================================================
+}
+/* ============================================================
    NIGHT SHIFT DARK MODE OVERRIDES
    ============================================================ */
 
 body[data-shift="night"] .shift-panel{
   background:linear-gradient(
     155deg,
-    #1b1b1b 0%,
-    #111111 50%,
-    #080808 100%
+    #24272c 0%,
+    #1c1f23 50%,
+    #17191c 100%
   );
-  border-color:#2a2a2a;
+  border-color:#33373d;
 }
 
 body[data-shift="night"] .shift-eyebrow,
@@ -72,14 +73,14 @@ body[data-shift="night"] .meta,
 body[data-shift="night"] .operator-row label,
 body[data-shift="night"] .settings summary,
 body[data-shift="night"] .settings-grid label{
-  color:#bdbdbd;
+  color:#a8adb5;
 }
 
 body[data-shift="night"] section.block,
 body[data-shift="night"] .operator-row,
 body[data-shift="night"] .settings{
-  background:#111111;
-  border-color:#2a2a2a;
+  background:#1f2226;
+  border-color:#33373d;
 }
 
 body[data-shift="night"] .block-head{
@@ -92,13 +93,13 @@ body[data-shift="night"] .block-head{
 }
 
 body[data-shift="night"] .count{
-  background:#1a1a1a;
-  border-color:#333;
-  color:#ddd;
+  background:#262a30;
+  border-color:#3a3f46;
+  color:#d6d8dc;
 }
 
 body[data-shift="night"] .item-row{
-  border-top-color:#2a2a2a;
+  border-top-color:#33373d;
 }
 
 body[data-shift="night"] .notes,
@@ -106,25 +107,25 @@ body[data-shift="night"] input[type="text"],
 body[data-shift="night"] input[type="password"],
 body[data-shift="night"] input[type="time"],
 body[data-shift="night"] textarea{
-  background:#151515;
-  color:#fff;
-  border-color:#333;
+  background:#26292e;
+  color:#f0f1f2;
+  border-color:#3a3f46;
 }
 
 body[data-shift="night"] input:read-only{
-  background:#1a1a1a;
-  color:#fff;
+  background:#2a2d33;
+  color:#f0f1f2;
 }
 
 body[data-shift="night"] .item-time-wrap{
-  background:#171717;
-  border-color:#333;
+  background:#26292e;
+  border-color:#3a3f46;
 }
 
 body[data-shift="night"] .btn-ghost{
-  background:#151515;
-  border-color:#333;
-  color:#fff;
+  background:#26292e;
+  border-color:#3a3f46;
+  color:#f0f1f2;
 }
 
 body[data-shift="night"] .btn-ghost:hover{
@@ -133,24 +134,26 @@ body[data-shift="night"] .btn-ghost:hover{
 }
 
 body[data-shift="night"] .item-comment,
+body[data-shift="night"] .item-operator,
 body[data-shift="night"] .notes{
-  color:#fff;
+  color:#f0f1f2;
 }
 
 body[data-shift="night"] .item-comment::placeholder,
+body[data-shift="night"] .item-operator::placeholder,
 body[data-shift="night"] textarea::placeholder,
 body[data-shift="night"] input::placeholder{
-  color:#888;
+  color:#8b8f96;
 }
 
 body[data-shift="night"] .unsaved-banner{
-  background:#2b180f;
+  background:#33241a;
   border-color:#b15d42;
   color:#ffb59d;
 }
 
 body[data-shift="night"] header{
-  border-bottom-color:#ffffff;
+  border-bottom-color:#e9eaec;
 }
 
 body[data-shift="night"] .shift-chip.day{
@@ -159,15 +162,13 @@ body[data-shift="night"] .shift-chip.day{
 }
 
 body[data-shift="night"] .shift-chip.night{
-  background:#1c2235;
+  background:#232a45;
   color:#8aa4ff;
 }
 
 body[data-shift="night"] .app-logo{
   filter:brightness(0) invert(1);
 }
-}
-  }
 
   *{box-sizing:border-box;}
   body{
@@ -429,9 +430,17 @@ body[data-shift="night"] .app-logo{
   }
   .item-comment:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
   .item-comment::placeholder{color:#aaa;}
+  .item-operator{
+    width:130px;flex-shrink:0;padding:7px 10px;border:1px solid var(--line);border-radius:6px;
+    font-family:var(--sans);font-size:0.82rem;color:#444;
+    transition:border-color .15s ease, box-shadow .15s ease;
+  }
+  .item-operator:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-dim);}
+  .item-operator::placeholder{color:#aaa;}
   @media (max-width:460px){
     .item-meta{flex-direction:column;margin-left:0;}
     .item-time-wrap{align-self:flex-start;}
+    .item-operator{width:100%;}
   }
 
   .notes{
@@ -587,7 +596,7 @@ body[data-shift="night"] .app-logo{
         <div class="history-table-wrap" id="historyTableWrap" style="display:none;">
           <table class="history-table" id="historyTable">
             <thead>
-              <tr><th>Date</th><th>Shift</th><th>Time</th><th>Operator</th><th>Section</th><th>Item</th><th>Checked</th><th>Comment</th></tr>
+              <tr><th>Date</th><th>Shift</th><th>Time</th><th>Operator</th><th>Task Operator</th><th>Section</th><th>Item</th><th>Checked</th><th>Comment</th></tr>
             </thead>
             <tbody id="historyTableBody"></tbody>
           </table>
@@ -603,11 +612,11 @@ body[data-shift="night"] .app-logo{
       <span class="count">0 / 3</span>
     </div>
     <div class="items">
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon is OK</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check fuel Hammermill Magnet </span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Dry Hammermill Magnet </span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon Tank is on operational level</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check water sprayers are functioning correctly</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon is OK</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check fuel Hammermill Magnet </span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Dry Hammermill Magnet </span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Grecon Tank is on operational level</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check water sprayers are functioning correctly</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
     </div>
   </section>
 
@@ -617,17 +626,17 @@ body[data-shift="night"] .app-logo{
       <span class="count">0 / 5</span>
     </div>
     <div class="items">
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Mill Adjustment Sheet is up to date</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check Mill Adjustment Sheet is up to date</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
 
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip">9 AM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip">3 PM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect &amp; clean steam vent<span class="shift-chip">5:30 PM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip">9 AM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip">3 PM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect &amp; clean steam vent<span class="shift-chip">5:30 PM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
 
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip">9 PM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip">3 AM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect &amp; clean steam vent<span class="shift-chip">5:30 AM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip">9 PM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Purge mills — 200 pumps each<span class="shift-chip">3 AM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Inspect &amp; clean steam vent<span class="shift-chip">5:30 AM</span></span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
 
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty drop box at end of shift</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty drop box at end of shift</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
     </div>
   </section>
 
@@ -637,10 +646,10 @@ body[data-shift="night"] .app-logo{
       <span class="count">0 / 4</span>
     </div>
     <div class="items">
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Deep clean around mills</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Clean diverters / shavings 1 into 2 transition</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Check drinking water tank level</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
-      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty all bins and wheel barrows</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Deep clean around mills</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Clean diverters / shavings 1 into 2 transition</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Check drinking water tank level</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
+      <div class="item-row"><label class="item"><input type="checkbox"><span>Empty all bins and wheel barrows</span></label><div class="item-meta"><div class="item-time-wrap"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg><input type="time" class="item-time" title="Time completed"></div><input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task"><input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>
     </div>
   </section>
 
@@ -833,7 +842,8 @@ function saveLocalState(shift){
   const items = allItemRows().map(row=>({
     checked: row.querySelector('input[type=checkbox]').checked,
     time: row.querySelector('.item-time').value,
-    comment: row.querySelector('.item-comment').value
+    comment: row.querySelector('.item-comment').value,
+    operator: row.querySelector('.item-operator').value
   }));
   const state = {
     date: todayKey(),
@@ -856,6 +866,7 @@ function restoreLocalState(shift){
     row.querySelector('.item span').classList.remove('checked-text');
     row.querySelector('.item-time').value = '';
     row.querySelector('.item-comment').value = '';
+    row.querySelector('.item-operator').value = '';
   });
   if(!raw) return;
   let state;
@@ -872,6 +883,7 @@ function restoreLocalState(shift){
     row.querySelector('.item span').classList.toggle('checked-text', checkbox.checked);
     row.querySelector('.item-time').value = saved.time || '';
     row.querySelector('.item-comment').value = saved.comment || '';
+    row.querySelector('.item-operator').value = saved.operator || '';
   });
 }
 
@@ -956,6 +968,7 @@ document.getElementById('resetBtn').addEventListener('click', ()=>{
     row.querySelector('.item span').classList.remove('checked-text');
     row.querySelector('.item-time').value = '';
     row.querySelector('.item-comment').value = '';
+    row.querySelector('.item-operator').value = '';
   });
   document.getElementById('sessionNotes').value = '';
   document.getElementById('operatorName').value = '';
@@ -1033,7 +1046,10 @@ function gatherRows(){
       const text = row.querySelector('.item span').childNodes[0].textContent.trim();
       const time = row.querySelector('.item-time').value.trim() || '(not entered)';
       const comment = row.querySelector('.item-comment').value.trim();
-      rows.push([date, shiftLabel, time, operator, section, text, checked ? 'Y' : 'N', comment, sessionNotes, sessionId]);
+      // Per-task operator: falls back to the session operator name if not
+      // overridden on the row, so every task always has an operator on it.
+      const taskOperator = row.querySelector('.item-operator').value.trim() || operator;
+      rows.push([date, shiftLabel, time, operator, taskOperator, section, text, checked ? 'Y' : 'N', comment, sessionNotes, sessionId]);
     });
   });
   return rows;
@@ -1064,7 +1080,7 @@ async function doPush(){
 
   const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
   const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' };
-  const emptyLog = [['Date','Shift','Time','Operator','Section','Item','Checked','Item Comment','Session Notes','Session ID']];
+  const emptyLog = [['Date','Shift','Time','Operator','Task Operator','Section','Item','Checked','Item Comment','Session Notes','Session ID']];
   const MAX_ATTEMPTS = 4;
 
   try{
@@ -1095,7 +1111,7 @@ async function doPush(){
 
       // Drop rows previously auto-saved by this session (last column = session id),
       // so saving again updates in place instead of duplicating rows.
-      const filteredRows = existingRows.filter(row => row[9] !== sessionId);
+      const filteredRows = existingRows.filter(row => row[10] !== sessionId);
 
       const newRows = gatherRows();
       newRowsCount = newRows.length;
@@ -1208,12 +1224,12 @@ function renderHistoryTable(rows){
   wrap.style.display = 'block';
   rows.forEach(row=>{
     const tr = document.createElement('tr');
-    // Column order matches the log: date, shift, time, operator, section, item, checked, comment
-    const cells = [row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7]];
+    // Column order matches the log: date, shift, time, operator, task operator, section, item, checked, comment
+    const cells = [row[0], row[1], row[2], row[3], row[4], row[5], row[6], row[7], row[8]];
     cells.forEach((val, i)=>{
       const td = document.createElement('td');
       td.textContent = (val === undefined || val === null) ? '' : val;
-      if(i === 6) td.classList.add(val === 'Y' ? 'hist-check-y' : 'hist-check-n');
+      if(i === 7) td.classList.add(val === 'Y' ? 'hist-check-y' : 'hist-check-n');
       tr.appendChild(td);
     });
     body.appendChild(tr);
@@ -1233,7 +1249,7 @@ document.getElementById('historyFilter').addEventListener('input', ()=>{
 
 /* Mark checklist as having unsaved changes on any edit (save is manual) */
 document.querySelectorAll('input[type=checkbox], .item-time').forEach(el=> el.addEventListener('change', markDirty));
-document.querySelectorAll('.item-comment').forEach(el=> el.addEventListener('input', markDirty));
+document.querySelectorAll('.item-comment, .item-operator').forEach(el=> el.addEventListener('input', markDirty));
 document.getElementById('operatorName').addEventListener('input', markDirty);
 document.getElementById('sessionNotes').addEventListener('input', markDirty);
 </script>
