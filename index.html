@@ -1043,6 +1043,7 @@ function gatherRows(){
       if(row.hidden) return;
       const input = row.querySelector('input[type=checkbox]');
       const checked = input.checked;
+      if(!checked) return; // only completed tasks get logged
       const text = row.querySelector('.item span').childNodes[0].textContent.trim();
       const time = row.querySelector('.item-time').value.trim() || '(not entered)';
       const comment = row.querySelector('.item-comment').value.trim();
