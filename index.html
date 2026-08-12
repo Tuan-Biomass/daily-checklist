@@ -674,7 +674,17 @@ function defaultShiftForNow(){
 }
 let currentShift = localStorage.getItem('checklist_last_shift') || defaultShiftForNow();
 
-function todayKey(){ return new Date().toISOString().slice(0,10); }
+/* Local calendar date as YYYY-MM-DD. Using toISOString() here would convert
+   to UTC first, which can show yesterday's (or tomorrow's) date depending on
+   timezone and time of day — this keeps it matching the local clock. */
+function localDateKey(d){
+  d = d || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function todayKey(){ return localDateKey(); }
 
 /* Each shift gets its own session id, scoped to today's date, so day and
    night crews on the same calendar date never collide or overwrite rows. */
@@ -699,7 +709,7 @@ let sessionId = sessionIdFor(currentShift);
 function tick(){
   const now = new Date();
   document.getElementById('clock').textContent = now.toLocaleString();
-  document.getElementById('operatorDate').value = now.toISOString().slice(0,10);
+  document.getElementById('operatorDate').value = localDateKey(now);
 }
 tick(); setInterval(tick, 1000);
 
@@ -1032,7 +1042,7 @@ renderShiftChrome();
 /* ---------- gather rows for export/push ---------- */
 function gatherRows(){
   const now = new Date();
-  const date = now.toISOString().slice(0,10);
+  const date = localDateKey(now);
   const operator = document.getElementById('operatorName').value.trim() || '(not entered)';
   const sessionNotes = document.getElementById('sessionNotes').value.trim();
   const shiftLabel = currentShift === 'day' ? 'Day' : 'Night';
@@ -1043,7 +1053,6 @@ function gatherRows(){
       if(row.hidden) return;
       const input = row.querySelector('input[type=checkbox]');
       const checked = input.checked;
-      if(!checked) return; // only completed tasks get logged
       const text = row.querySelector('.item span').childNodes[0].textContent.trim();
       const time = row.querySelector('.item-time').value.trim() || '(not entered)';
       const comment = row.querySelector('.item-comment').value.trim();
