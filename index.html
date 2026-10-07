@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Shift Checklist</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
 
@@ -1065,6 +1066,100 @@ function gatherRows(){
   return rows;
 }
 
+/* ---------- styled xlsx builder (ExcelJS) ---------- */
+const LOG_HEADER = ['Date','Shift','Time','Operator','Task Operator','Section','Item','Checked','Item Comment','Session Notes','Session ID'];
+const LOG_COL_WIDTHS = [12, 9, 13, 16, 16, 22, 50, 10, 38, 38, 22];
+const LOG_CENTER_COLS = [0, 1, 2, 7];
+
+async function buildStyledLogWorkbook(dataRows){
+  const wb = new ExcelJS.Workbook();
+  wb.creator = 'Shift Checklist';
+  wb.created = new Date();
+
+  const ws = wb.addWorksheet('Log', {
+    views: [{ state:'frozen', ySplit:1, showGridLines:false }],
+    pageSetup: { orientation:'landscape', paperSize:9, fitToPage:true, fitToWidth:1, fitToHeight:0, printTitlesRow:'1:1' }
+  });
+  ws.columns = LOG_HEADER.map((h,i)=>({ key:'c'+i, width:LOG_COL_WIDTHS[i] }));
+
+  const FONT = 'Calibri';
+  const grid = { style:'thin', color:{ argb:'FFD5D9D2' } };
+  const cellBorder = { top:grid, left:grid, bottom:grid, right:grid };
+  const solid = argb => ({ type:'pattern', pattern:'solid', fgColor:{ argb } });
+
+  /* header */
+  const head = ws.addRow(LOG_HEADER);
+  head.height = 28;
+  head.eachCell(cell=>{
+    cell.font = { name:FONT, size:11, bold:true, color:{ argb:'FFFFFFFF' } };
+    cell.fill = solid('FF1C2321');
+    cell.alignment = { vertical:'middle', horizontal:'center', wrapText:true };
+    cell.border = { top:grid, left:grid, right:grid, bottom:{ style:'medium', color:{ argb:'FFB5711F' } } };
+  });
+
+  /* body */
+  let prevSession = null;
+  let band = false;
+  dataRows.forEach(raw=>{
+    const vals = LOG_HEADER.map((_,i)=> raw[i] === undefined || raw[i] === null ? '' : raw[i]);
+    const sessionId = String(vals[10]);
+    const boundary = prevSession !== null && sessionId !== prevSession;
+    if(boundary) band = !band;
+    prevSession = sessionId;
+
+    const row = ws.addRow(vals);
+
+    /* estimate a row height so wrapped text is fully visible in every viewer */
+    let lines = 1;
+    [6, 8, 9].forEach(i=>{
+      const text = String(vals[i]);
+      if(!text) return;
+      const perLine = Math.max(1, Math.floor(LOG_COL_WIDTHS[i] * 1.05));
+      const n = text.split('\n').reduce((sum, seg)=> sum + Math.max(1, Math.ceil(seg.length / perLine)), 0);
+      if(n > lines) lines = n;
+    });
+    row.height = Math.max(20, lines * 14 + 6);
+
+    row.eachCell({ includeEmpty:true }, (cell, colNumber)=>{
+      const i = colNumber - 1;
+      cell.font = { name:FONT, size:10, color:{ argb:'FF1C2321' } };
+      cell.alignment = { vertical:'middle', horizontal: LOG_CENTER_COLS.includes(i) ? 'center' : 'left', wrapText:true, indent: LOG_CENTER_COLS.includes(i) ? 0 : 1 };
+      cell.border = cellBorder;
+      if(band) cell.fill = solid('FFF5F6F3');
+      if(boundary){
+        cell.border = { ...cellBorder, top:{ style:'thin', color:{ argb:'FF8A9188' } } };
+      }
+    });
+
+    /* shift */
+    const shiftCell = row.getCell(2);
+    if(vals[1] === 'Day'){
+      shiftCell.fill = solid('FFF7ECD9');
+      shiftCell.font = { name:FONT, size:10, bold:true, color:{ argb:'FF8C5717' } };
+    } else if(vals[1] === 'Night'){
+      shiftCell.fill = solid('FFE4E7F3');
+      shiftCell.font = { name:FONT, size:10, bold:true, color:{ argb:'FF2C375C' } };
+    }
+
+    /* checked */
+    const chk = row.getCell(8);
+    if(vals[7] === 'Y'){
+      chk.fill = solid('FFDDEFE0');
+      chk.font = { name:FONT, size:10, bold:true, color:{ argb:'FF1E6B34' } };
+    } else if(vals[7] === 'N'){
+      chk.fill = solid('FFF6DFD8');
+      chk.font = { name:FONT, size:10, bold:true, color:{ argb:'FFA4462C' } };
+    }
+
+    /* section: bold; session id: small grey */
+    row.getCell(6).font = { name:FONT, size:10, bold:true, color:{ argb:'FF3A4440' } };
+    row.getCell(11).font = { name:FONT, size:8, color:{ argb:'FF8A9188' } };
+  });
+
+  ws.autoFilter = { from:{ row:1, column:1 }, to:{ row:Math.max(1, dataRows.length + 1), column:LOG_HEADER.length } };
+  return await wb.xlsx.writeBuffer();
+}
+
 /* ---------- GitHub push ---------- */
 let pushInFlight = false;
 async function doPush(){
@@ -1127,14 +1222,17 @@ async function doPush(){
       newRowsCount = newRows.length;
       const allRows = filteredRows.concat(newRows);
 
-      const newWs = XLSX.utils.aoa_to_sheet(allRows);
-      const newWb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(newWb, newWs, 'Log');
-      const wbArray = XLSX.write(newWb, { bookType:'xlsx', type:'array' });
+      // Rebuild the whole sheet with formatting (header row is always regenerated;
+      // blank rows from older files are skipped).
+      const dataRows = allRows.slice(1).filter(r => r && r.some(c => c !== undefined && c !== null && c !== ''));
+      const wbArray = await buildStyledLogWorkbook(dataRows);
 
       let binaryStr = '';
       const bytes2 = new Uint8Array(wbArray);
-      for(let i=0;i<bytes2.length;i++) binaryStr += String.fromCharCode(bytes2[i]);
+      const CHUNK = 0x8000;
+      for(let i=0;i<bytes2.length;i+=CHUNK){
+        binaryStr += String.fromCharCode.apply(null, bytes2.subarray(i, i+CHUNK));
+      }
       const base64Content = btoa(binaryStr);
 
       const putBody = { message: `Checklist log update ${new Date().toISOString()}`, content: base64Content, branch: branch };
