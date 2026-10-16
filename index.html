@@ -811,7 +811,9 @@ body[data-shift="night"] .app-logo{
   </header>
 
   <div class="kpi-toolbar">
-    <button type="button" class="btn-ghost" id="kpiRefreshBtn">Refresh from GitHub</button>
+    <button type="button" class="btn-ghost" id="kpiRefreshBtn">Reload log</button>
+    <button type="button" class="btn-ghost" id="kpiFileBtn">Open log file…</button>
+    <input type="file" id="kpiFileInput" accept=".xlsx,.xls,.csv" hidden>
     <span class="kpi-status" id="kpiStatus"></span>
   </div>
 
@@ -1653,6 +1655,24 @@ function kpiMakeSessions(entries){
   return Array.from(map.values()).sort((a,b)=> a.sortKey < b.sortKey ? 1 : -1); // newest first
 }
 
+/* Parse log bytes (xlsx/csv) and refresh the whole KPI page from them. */
+function kpiEncPath(p){ return p.split('/').map(encodeURIComponent).join('/'); }
+
+function kpiIngest(bytes, sourceLabel){
+  const status = document.getElementById('kpiStatus');
+  const wb = XLSX.read(bytes, { type:'array' });
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1 }).slice(1);
+  const built = kpiBuild(rows);
+  kpiState.entries = built.entries;
+  const dates = built.entries.map(e => e.date).sort();
+  kpiState.range = dates.length ? [dates[0], dates[dates.length - 1]] : null;
+  status.className = 'kpi-status';
+  status.textContent = `Read ${rows.length} rows from ${sourceLabel}` +
+    (kpiState.range ? ` · log covers ${kpiFmtDay(kpiState.range[0])} – ${kpiFmtDay(kpiState.range[1])}` : ' · no dated rows found') +
+    ` · ${new Date().toLocaleTimeString()}`;
+  kpiRender();
+}
+
 async function kpiLoad(){
   const status = document.getElementById('kpiStatus');
   const btn = document.getElementById('kpiRefreshBtn');
@@ -1662,52 +1682,59 @@ async function kpiLoad(){
   const branch = document.getElementById('ghBranch').value.trim() || 'main';
   const path  = document.getElementById('ghPath').value.trim() || 'log.xlsx';
 
-  if(!token || !owner || !repo){
-    status.className = 'kpi-status err';
-    status.textContent = 'Add your GitHub settings (token, owner, repo) on the Checklist page first.';
-    return;
-  }
   if(kpiState.loading) return;
   kpiState.loading = true;
   btn.disabled = true;
   status.className = 'kpi-status';
-  status.textContent = 'Loading log...';
+  kpiState.pickedFile = false;
+  status.textContent = `Reading ${path} from ${owner && repo ? owner + '/' + repo + ' (' + branch + ')' : 'this page\'s folder'}...`;
 
   try{
-    const apiBase = `https://api.github.com/repos/${owner}/${repo}`;
-    const hJson = { 'Authorization':`token ${token}`, 'Accept':'application/vnd.github+json' };
-    const hRaw  = { 'Authorization':`token ${token}`, 'Accept':'application/vnd.github.raw+json' };
     const isZip = b => b && b.length > 1 && b[0] === 0x50 && b[1] === 0x4B; // "PK" = xlsx file
-    let rows = [];
 
-    const resp = await fetch(`${apiBase}/contents/${path}?ref=${encodeURIComponent(branch)}`, { headers:hJson });
-    if(resp.status === 404){
-      status.textContent = 'No log file found yet at this path.';
-    } else if(!resp.ok){
-      throw new Error(`GitHub read failed (${resp.status}): ${await resp.text()}`);
-    } else {
-      // Read the body once as bytes, then work out whether it is JSON or the raw xlsx.
-      let bytes = new Uint8Array(await resp.arrayBuffer());
-      if(!isZip(bytes)){
-        const data = JSON.parse(new TextDecoder().decode(bytes));
-        if(data.content && data.encoding === 'base64'){
-          const bin = atob(data.content.replace(/\n/g,''));
-          bytes = new Uint8Array(bin.length);
-          for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
-        } else {
-          // Files over 1 MB come back without inline content: fetch the blob as raw bytes.
-          const blob = await fetch(`${apiBase}/git/blobs/${data.sha}`, { headers:hRaw });
-          if(!blob.ok) throw new Error(`GitHub read failed (${blob.status}): ${await blob.text()}`);
-          bytes = new Uint8Array(await blob.arrayBuffer());
+    if(token && owner && repo){
+      /* Source 1: the log file in your GitHub repo (what "Save & push" writes to). */
+      const apiBase = `https://api.github.com/repos/${owner}/${repo}`;
+      const hJson = { 'Authorization':`token ${token}`, 'Accept':'application/vnd.github+json' };
+      const hRaw  = { 'Authorization':`token ${token}`, 'Accept':'application/vnd.github.raw+json' };
+      const resp = await fetch(`${apiBase}/contents/${kpiEncPath(path)}?ref=${encodeURIComponent(branch)}`, { headers:hJson });
+      if(resp.status === 404){
+        kpiState.entries = []; kpiState.range = null;
+        status.textContent = `No ${path} found in ${owner}/${repo} (${branch}) yet.`;
+        kpiRender();
+      } else if(!resp.ok){
+        throw new Error(`GitHub read failed (${resp.status}): ${await resp.text()}`);
+      } else {
+        // Read the body once as bytes, then work out whether it is JSON or the raw xlsx.
+        let bytes = new Uint8Array(await resp.arrayBuffer());
+        if(!isZip(bytes)){
+          const data = JSON.parse(new TextDecoder().decode(bytes));
+          if(data.content && data.encoding === 'base64'){
+            const bin = atob(data.content.replace(/\n/g,''));
+            bytes = new Uint8Array(bin.length);
+            for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+          } else {
+            // Files over 1 MB come back without inline content: fetch the blob as raw bytes.
+            const blob = await fetch(`${apiBase}/git/blobs/${data.sha}`, { headers:hRaw });
+            if(!blob.ok) throw new Error(`GitHub read failed (${blob.status}): ${await blob.text()}`);
+            bytes = new Uint8Array(await blob.arrayBuffer());
+          }
         }
+        kpiIngest(bytes, `${owner}/${repo}/${path}`);
       }
-      const wb = XLSX.read(bytes, { type:'array' });
-      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1 }).slice(1);
-      status.textContent = `Loaded ${rows.length} log rows. Updated ${new Date().toLocaleTimeString()}.`;
+    } else {
+      /* Source 2: no GitHub settings, so look for the log file next to this page. */
+      let resp = null;
+      try{ resp = await fetch(path + (path.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache:'no-store' }); }catch(e){}
+      if(!resp || !resp.ok){
+        throw new Error(`Could not find ${path} next to this page. Add your GitHub settings on the Checklist page, or use "Open log file…" to pick it.`);
+      }
+      const bytes = new Uint8Array(await resp.arrayBuffer());
+      if(!isZip(bytes) && /^\s*</.test(new TextDecoder().decode(bytes.subarray(0, 40)))){
+        throw new Error(`${path} next to this page is not a log file. Use "Open log file…" to pick it.`);
+      }
+      kpiIngest(bytes, path);
     }
-    const built = kpiBuild(rows);
-    kpiState.entries = built.entries;
-    kpiRender();
   } catch(err){
     console.error(err);
     status.className = 'kpi-status err';
@@ -1721,7 +1748,8 @@ async function kpiLoad(){
 function kpiOpen(){
   if(!kpiState.weekStart) kpiState.weekStart = kpiMondayOf(new Date());
   document.getElementById('kpiMeta').textContent = new Date().toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  if(kpiState.entries) kpiRender(); else kpiLoad();
+  if(kpiState.entries) kpiRender();            // show what we have straight away
+  if(!kpiState.pickedFile) kpiLoad();           // then re-read the log file named in settings
 }
 
 /* ---------- calculations ---------- */
@@ -1889,7 +1917,9 @@ function kpiRenderWeek(week){
   const body = document.getElementById('kpiWeekBody');
 
   if(!week.sessions.length){
-    body.innerHTML = '<div class="kpi-empty">No shifts were logged this week.</div>';
+    body.innerHTML = '<div class="kpi-empty">No shifts were logged this week.' +
+      (kpiState.range ? ` The log has entries from ${kpiEsc(kpiFmtDay(kpiState.range[0]))} to ${kpiEsc(kpiFmtDay(kpiState.range[1]))}. Use the arrows to move to that week.` : ' The log has no dated entries.') +
+      '</div>';
     return;
   }
 
@@ -1994,6 +2024,23 @@ document.getElementById('kpiTasksNone').addEventListener('click', ()=>{ document
 kpiBuildTaskSettings();
 
 document.getElementById('kpiRefreshBtn').addEventListener('click', kpiLoad);
+/* Changing the log file / repo in settings discards the old KPI data so the next view reads the new file. */
+document.getElementById('saveSettings').addEventListener('click', ()=>{ kpiState.entries = null; kpiState.sessions = null; kpiState.userPickKey = null; kpiState.pickedFile = false; });
+document.getElementById('kpiFileBtn').addEventListener('click', ()=> document.getElementById('kpiFileInput').click());
+document.getElementById('kpiFileInput').addEventListener('change', async e=>{
+  const file = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if(!file) return;
+  const status = document.getElementById('kpiStatus');
+  try{
+    kpiState.pickedFile = true;
+    kpiIngest(new Uint8Array(await file.arrayBuffer()), file.name);
+  } catch(err){
+    console.error(err);
+    status.className = 'kpi-status err';
+    status.textContent = 'Error: could not read ' + file.name + ' (' + err.message + ')';
+  }
+});
 document.getElementById('kpiShiftSelect').addEventListener('change', e => { kpiState.userPickKey = e.target.value; kpiRender(); });
 document.getElementById('kpiPrevWeek').addEventListener('click', ()=>{ kpiState.weekStart = kpiAddDays(kpiState.weekStart, -7); kpiRender(); });
 document.getElementById('kpiNextWeek').addEventListener('click', ()=>{ kpiState.weekStart = kpiAddDays(kpiState.weekStart, 7); kpiRender(); });
