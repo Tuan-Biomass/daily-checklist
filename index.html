@@ -643,6 +643,13 @@ body[data-shift="night"] .app-logo{
   .progress-list li.done b{color:#3f7d58;}
   body[data-shift="night"] .progress-list li.done b{color:#8fd1a8;}
   .kpi-two > div{min-width:0;}
+  .kpi-shifts{display:grid;grid-template-columns:minmax(0,1fr);gap:22px;}
+  .kpi-shift{min-width:0;}
+  .kpi-shift-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+  .kpi-shift-head .shift-chip{margin-left:0;}
+  .kpi-shift-time{font-family:var(--mono);font-size:0.78rem;font-weight:600;}
+  .kpi-weekgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:0 40px;}
+  .kpi-weekgrid > div{min-width:0;}
   @media (min-width:1100px){
     body{padding:32px 40px 90px;}
     .wrap{max-width:1440px;}
@@ -655,7 +662,9 @@ body[data-shift="night"] .app-logo{
     label.item{flex:1 1 38%;min-width:0;}
     .item-meta{flex:1 1 62%;margin-left:0;min-width:0;}
     .actions{position:sticky;bottom:0;z-index:5;padding:14px 0;margin-top:20px;background:linear-gradient(180deg,transparent,var(--paper) 30%);}
-    .kpi-layout{display:grid;grid-template-columns:minmax(340px,5fr) minmax(0,7fr);gap:18px;align-items:start;}
+    .kpi-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:18px;align-items:start;}
+    .kpi-shifts{grid-template-columns:1fr 1fr;}
+    .kpi-weekgrid{grid-template-columns:1fr 1fr;}
     .kpi-layout .kpi-panel{margin-bottom:0;}
     .kpi-two{display:grid;grid-template-columns:1fr 1fr;gap:0 32px;}
   }
@@ -725,7 +734,7 @@ body[data-shift="night"] .app-logo{
       <input type="text" id="operatorName" placeholder="Operators">
     </div>
     <div>
-      <label>Date</label>
+      <label>Shift date</label>
       <input type="text" id="operatorDate" readonly>
     </div>
   </div>
@@ -869,8 +878,8 @@ body[data-shift="night"] .app-logo{
   <div class="kpi-layout">
   <div class="kpi-panel">
     <div class="kpi-panel-head">
-      <h2>Previous shift report</h2>
-      <select class="kpi-select" id="kpiShiftSelect" aria-label="Choose a shift"></select>
+      <h2>Shift report</h2>
+      <select class="kpi-select" id="kpiShiftSelect" aria-label="Choose a shift day"></select>
     </div>
     <div id="kpiShiftBody"></div>
   </div>
@@ -889,7 +898,7 @@ body[data-shift="night"] .app-logo{
   </div>
 
   <div style="font-family:var(--mono);font-size:0.72rem;opacity:.6;margin-top:6px;">
-    Only shifts that were saved with "Save &amp; push now" are counted. "Once a Week" tasks appear on every shift, so they are counted once per week (missed only if never completed that week) instead of once per shift.
+    Shifts are grouped by the shift, not the calendar date: Day is 06:00–18:00 and Night is 18:00–06:00, so a night shift belongs to the day it started on. Only shifts that were saved with "Save &amp; push now" are counted. "Once a Week" tasks appear on every shift, so they are counted once per week (missed only if never completed that week) instead of once per shift.
   </div>
 </div>
 
@@ -917,6 +926,19 @@ function localDateKey(d){
 }
 function todayKey(){ return localDateKey(); }
 
+/* Shifts: Day = 06:00-18:00, Night = 18:00-06:00 (the next morning).
+   A shift belongs to the date it STARTED on, so a night shift that carries on past
+   midnight still counts as the previous day's night shift. */
+function actualShiftNow(){
+  const h = new Date().getHours();
+  return (h >= 6 && h < 18) ? 'day' : 'night';
+}
+function shiftDateKey(shift, when){
+  const d = new Date(when || new Date());
+  if(shift === 'night' && d.getHours() < 6) d.setDate(d.getDate() - 1);
+  return localDateKey(d);
+}
+
 /* Each shift gets its own session id, scoped to today's date, so day and
    night crews on the same calendar date never collide or overwrite rows. */
 function newSessionId(){
@@ -925,7 +947,7 @@ function newSessionId(){
 function sessionIdFor(shift){
   const dateKey = 'checklist_session_date_' + shift;
   const idKey = 'checklist_session_id_' + shift;
-  const today = todayKey();
+  const today = shiftDateKey(shift);
   if(localStorage.getItem(dateKey) !== today){
     localStorage.setItem(dateKey, today);
     localStorage.setItem(idKey, newSessionId());
@@ -940,7 +962,7 @@ let sessionId = sessionIdFor(currentShift);
 function tick(){
   const now = new Date();
   document.getElementById('clock').textContent = now.toLocaleString();
-  document.getElementById('operatorDate').value = localDateKey(now);
+  document.getElementById('operatorDate').value = shiftDateKey(currentShift, now);
 }
 tick(); setInterval(tick, 1000);
 
@@ -1074,7 +1096,7 @@ function applyShiftVisibility(){
 }
 
 /* ---------- local same-day-and-shift persistence ---------- */
-function localStateKey(shift){ return 'checklist_localstate_' + todayKey() + '_' + shift; }
+function localStateKey(shift){ return 'checklist_localstate_' + shiftDateKey(shift) + '_' + shift; }
 
 function allItemRows(){ return Array.from(document.querySelectorAll('.item-row')); }
 function visibleItemRows(){ return allItemRows().filter(r => !r.hidden); }
@@ -1087,7 +1109,7 @@ function saveLocalState(shift){
     operator: row.querySelector('.item-operator').value
   }));
   const state = {
-    date: todayKey(),
+    date: shiftDateKey(shift),
     operatorName: document.getElementById('operatorName').value,
     sessionNotes: document.getElementById('sessionNotes').value,
     items
@@ -1112,7 +1134,7 @@ function restoreLocalState(shift){
   if(!raw) return;
   let state;
   try{ state = JSON.parse(raw); } catch(e){ return; }
-  if(!state || state.date !== todayKey()) return;
+  if(!state || state.date !== shiftDateKey(shift)) return;
 
   document.getElementById('operatorName').value = state.operatorName || '';
   document.getElementById('sessionNotes').value = state.sessionNotes || '';
@@ -1235,7 +1257,7 @@ document.querySelectorAll('.item-time').forEach(timeInput=>{
 });
 
 document.getElementById('resetBtn').addEventListener('click', ()=>{
-  localStorage.setItem('checklist_session_date_' + currentShift, todayKey());
+  localStorage.setItem('checklist_session_date_' + currentShift, shiftDateKey(currentShift));
   localStorage.setItem('checklist_session_id_' + currentShift, newSessionId());
   sessionId = sessionIdFor(currentShift);
   allItemRows().forEach(row=>{
@@ -1310,6 +1332,8 @@ renderShiftChrome();
 function gatherRows(){
   const now = new Date();
   const date = localDateKey(now);
+  // The date this shift started on (a night shift saved after midnight still belongs to the evening it began).
+  const shiftDate = localStorage.getItem('checklist_session_date_' + currentShift) || shiftDateKey(currentShift);
   const operator = document.getElementById('operatorName').value.trim() || '(not entered)';
   const sessionNotes = document.getElementById('sessionNotes').value.trim();
   const shiftLabel = currentShift === 'day' ? 'Day' : 'Night';
@@ -1326,16 +1350,16 @@ function gatherRows(){
       // Per-task operator: falls back to the session operator name if not
       // overridden on the row, so every task always has an operator on it.
       const taskOperator = row.querySelector('.item-operator').value.trim() || operator;
-      rows.push([date, shiftLabel, time, operator, taskOperator, section, text, checked ? 'Y' : 'N', comment, sessionNotes, sessionId]);
+      rows.push([date, shiftLabel, time, operator, taskOperator, section, text, checked ? 'Y' : 'N', comment, sessionNotes, sessionId, shiftDate]);
     });
   });
   return rows;
 }
 
 /* ---------- styled xlsx builder (ExcelJS) ---------- */
-const LOG_HEADER = ['Date','Shift','Time','Operator','Task Operator','Section','Item','Checked','Item Comment','Session Notes','Session ID'];
-const LOG_COL_WIDTHS = [12, 9, 13, 16, 16, 22, 50, 10, 38, 38, 22];
-const LOG_CENTER_COLS = [0, 1, 2, 7];
+const LOG_HEADER = ['Date','Shift','Time','Operator','Task Operator','Section','Item','Checked','Item Comment','Session Notes','Session ID','Shift Date'];
+const LOG_COL_WIDTHS = [12, 9, 13, 16, 16, 22, 50, 10, 38, 38, 22, 12];
+const LOG_CENTER_COLS = [0, 1, 2, 7, 11];
 
 async function buildStyledLogWorkbook(dataRows){
   const wb = new ExcelJS.Workbook();
@@ -1451,7 +1475,7 @@ async function doPush(){
 
   const apiBase = `https://api.github.com/repos/${owner}/${repo}/contents/${path}`;
   const headers = { 'Authorization': `token ${token}`, 'Accept': 'application/vnd.github+json' };
-  const emptyLog = [['Date','Shift','Time','Operator','Task Operator','Section','Item','Checked','Item Comment','Session Notes','Session ID']];
+  const emptyLog = [['Date','Shift','Time','Operator','Task Operator','Section','Item','Checked','Item Comment','Session Notes','Session ID','Shift Date']];
   const MAX_ATTEMPTS = 4;
 
   try{
@@ -1676,15 +1700,25 @@ function kpiNormDate(v){
   return m ? m[0] : null;
 }
 
+/* Hour (0-23) from a log Time cell such as "02:15" (or an Excel time fraction). */
+function kpiTimeHour(v){
+  if(typeof v === 'number' && v >= 0 && v < 1) return Math.floor(v * 24 + 1e-9);
+  const m = String(v == null ? '' : v).match(/^\s*(\d{1,2}):(\d{2})/);
+  return m ? +m[1] : null;
+}
+function kpiDayBefore(key){ return localDateKey(kpiAddDays(kpiParseKey(key), -1)); }
+
 function kpiBuild(rawRows){
   // rawRows: log rows without the header. Column order is the same as the log.
   const all = [];
   rawRows.forEach(r=>{
     if(!r) return;
-    const date = kpiNormDate(r[0]);
-    if(!date) return;
+    const rawDate = kpiNormDate(r[0]);
+    if(!rawDate) return;
     all.push({
-      date,
+      rawDate,
+      explicit: r.length > 11 ? kpiNormDate(r[11]) : null,   // "Shift Date" column (newer logs)
+      hour: kpiTimeHour(r[2]),
       shift: String(r[1] == null ? '' : r[1]).trim().toLowerCase() === 'night' ? 'Night' : 'Day',
       operator: String(r[3] == null ? '' : r[3]).trim(),
       taskOperator: String(r[4] == null ? '' : r[4]).trim(),
@@ -1697,10 +1731,44 @@ function kpiBuild(rawRows){
     });
   });
 
-  // If a shift was reset and logged again the same day, only the most recent session counts.
-  const lastSid = new Map();
-  all.forEach(e => lastSid.set(e.date + '|' + e.shift, e.sid));
-  const entries = all.filter(e => lastSid.get(e.date + '|' + e.shift) === e.sid);
+  /* Every entry gets .date = the date its SHIFT started on.
+     Newer logs store it. For older rows: a Night session with a task time between 00:00 and 05:59
+     was saved after midnight, so that shift started the day before. */
+  const early = new Set();
+  all.forEach(e=>{
+    if(!e.explicit && e.shift === 'Night' && e.hour !== null && e.hour < 6) early.add(e.rawDate + '|' + e.sid);
+  });
+  all.forEach(e=>{
+    e.date = e.explicit || (early.has(e.rawDate + '|' + e.sid) ? kpiDayBefore(e.rawDate) : e.rawDate);
+  });
+
+  // If a shift was reset and saved again, only the most recent session counts (per save date).
+  const groups = new Map();   // shiftDate|shift -> Map(saveDate -> last session id)
+  all.forEach(e=>{
+    const k = e.date + '|' + e.shift;
+    if(!groups.has(k)) groups.set(k, new Map());
+    groups.get(k).set(e.rawDate, e.sid);
+  });
+  const picked = all.filter(e => groups.get(e.date + '|' + e.shift).get(e.rawDate) === e.sid);
+
+  // A night shift that older versions split across midnight into two sessions: merge them (done in either half = done).
+  const byShift = new Map();
+  picked.forEach(e=>{
+    const k = e.date + '|' + e.shift;
+    if(!byShift.has(k)) byShift.set(k, []);
+    byShift.get(k).push(e);
+  });
+  const entries = [];
+  byShift.forEach(list=>{
+    if(new Set(list.map(e => e.rawDate)).size <= 1){ list.forEach(e => entries.push(e)); return; }
+    const merged = new Map();
+    list.forEach(e=>{
+      const k = e.section + '||' + e.item;
+      const cur = merged.get(k);
+      if(!cur || e.checked || !cur.checked) merged.set(k, e);
+    });
+    merged.forEach(e => entries.push(e));
+  });
 
   return { entries };
 }
@@ -1825,9 +1893,22 @@ function kpiOpen(){
 }
 
 /* ---------- calculations ---------- */
+function kpiNowShiftDate(){ return shiftDateKey(actualShiftNow()); }
+function kpiNowKey(){ return kpiNowShiftDate() + (actualShiftNow() === 'night' ? '1' : '0'); }
+/* The shift before the one running right now (by the clock, not the date). */
 function kpiPreviousSession(){
-  const cur = todayKey() + (currentShift === 'night' ? '1' : '0');
+  const cur = kpiNowKey();
   return kpiState.sessions.find(s => s.sortKey < cur) || null; // sessions are newest first
+}
+/* Most recent finished Day or Night shift. */
+function kpiLastByShift(shift){
+  const cur = kpiNowKey();
+  return kpiState.sessions.find(s => s.shift === shift && s.sortKey < cur) || null;
+}
+/* "Thu 15 Oct · 06:00–18:00"  /  "Thu 15 Oct 18:00 → Fri 16 Oct 06:00" */
+function kpiShiftPeriod(date, shift){
+  if(shift === 'Day') return kpiFmtDay(date) + ' · 06:00–18:00';
+  return kpiFmtDay(date) + ' 18:00 → ' + kpiFmtDay(localDateKey(kpiAddDays(kpiParseKey(date), 1))) + ' 06:00';
 }
 
 function kpiComputeWeek(){
@@ -1849,7 +1930,7 @@ function kpiComputeWeek(){
     wmap.set(k, o);
   });
   const weeklyOpen = Array.from(wmap.values()).filter(o => !o.done);
-  const weekOver = endKey < todayKey();
+  const weekOver = endKey < kpiNowShiftDate();
   const weeklyCounted = weekOver ? weeklyOpen : [];
 
   return {
@@ -1867,13 +1948,14 @@ function kpiRender(){
   const prev = kpiPreviousSession();
   const week = kpiComputeWeek();
 
-  // pick the shift to show in the shift report
-  let shown = null;
-  if(kpiState.userPickKey) shown = kpiState.sessions.find(s => s.key === kpiState.userPickKey) || null;
-  if(!shown) shown = prev || kpiState.sessions[0] || null;
+  // the shift report shows BOTH shifts of one shift-day (default: the day of the previous shift)
+  const dates = Array.from(new Set(kpiState.sessions.map(s => s.date)));   // newest first
+  let shownDate = null;
+  if(kpiState.userPickKey && dates.includes(kpiState.userPickKey)) shownDate = kpiState.userPickKey;
+  if(!shownDate) shownDate = prev ? prev.date : (dates[0] || null);
 
   kpiRenderCards(prev, week);
-  kpiRenderShift(shown, prev);
+  kpiRenderShift(shownDate, dates, prev);
   kpiRenderWeek(week);
 }
 
@@ -1886,12 +1968,22 @@ function kpiCardList(lis, empty){
 
 function kpiRenderCards(prev, week){
   const pct = week.regular.length ? Math.round(week.done / week.regular.length * 100) : null;
-  const prevLabel = prev ? `${prev.shift} · ${kpiFmtDay(prev.date)}` : '';
 
-  // 1. previous shift: each task not completed
-  const prevList = prev ? kpiCardList(prev.missed.map(e => kpiLi(e.item, e.section)), 'Everything was completed.') : '';
+  // 1 + 2. last Day shift and last Night shift: each task not completed
+  const shiftCard = shift => {
+    const nm = shift.toLowerCase();
+    const sh = kpiLastByShift(shift);
+    if(!sh) return { lbl:`Not completed · last ${nm} shift`, num:'–', cls:'', sub:`No earlier ${nm} shift logged`, list:'' };
+    return {
+      lbl:`Not completed · last ${nm} shift`,
+      num: sh.missed.length,
+      cls: sh.missed.length ? 'bad' : 'good',
+      sub: `of ${sh.total} tasks · ${kpiEsc(kpiFmtDay(sh.date))}${prev && prev.key === sh.key ? ' · previous shift' : ''}`,
+      list: kpiCardList(sh.missed.map(e => kpiLi(e.item, e.section)), 'Everything was completed.')
+    };
+  };
 
-  // 2. this week: each task not completed, grouped with a count
+  // 3. this week: each task not completed, grouped with a count
   const g = new Map();
   week.missed.forEach(e=>{
     const k = e.section + '||' + e.item;
@@ -1901,7 +1993,7 @@ function kpiRenderCards(prev, week){
   const weekLis = Array.from(g.values()).sort((a,b)=> b.n - a.n).map(o => kpiLi(o.item, o.section, '×' + o.n, 'bad'));
   week.weeklyOpen.forEach(o => weekLis.push(kpiLi(o.item, o.section + ' · weekly', week.weekOver ? 'missed' : 'open', week.weekOver ? 'bad' : '')));
 
-  // 3. completion rate: per section
+  // 4. completion rate: per section
   const secMap = new Map();
   week.regular.forEach(e=>{
     const o = secMap.get(e.section) || { done:0, total:0 };
@@ -1911,18 +2003,13 @@ function kpiRenderCards(prev, week){
   const secLis = Array.from(secMap.entries()).map(([name, o]) =>
     kpiLi(name, `${o.done} of ${o.total} done`, Math.round(o.done / o.total * 100) + '%', o.done < o.total ? 'bad' : ''));
 
-  // 4. shifts logged: each shift with how many were missed
+  // 5. shifts logged: each shift with how many were missed
   const shiftLis = week.sessions.slice().reverse().map(s =>
     kpiLi(`${kpiFmtDay(s.date)} · ${s.shift}`, s.operator ? 'Operators: ' + s.operator : '', s.missed.length ? s.missed.length + ' missed' : 'all done', s.missed.length ? 'bad' : ''));
 
   const cards = [
-    {
-      lbl:'Not completed · previous shift',
-      num: prev ? prev.missed.length : '–',
-      cls: prev ? (prev.missed.length ? 'bad' : 'good') : '',
-      sub: prev ? `of ${prev.total} tasks · ${kpiEsc(prevLabel)}` : 'No earlier shift logged',
-      list: prevList
-    },
+    shiftCard('Day'),
+    shiftCard('Night'),
     {
       lbl:'Not completed · this week',
       num: week.sessions.length ? week.total : '–',
@@ -1952,40 +2039,44 @@ function kpiRenderCards(prev, week){
   ).join('');
 }
 
-function kpiRenderShift(shown, prev){
+function kpiShiftBlock(sh, shift, date){
+  const head = `<div class="kpi-shift-head"><span class="shift-chip ${shift.toLowerCase()}">${shift}</span><span class="kpi-shift-time">${kpiEsc(kpiShiftPeriod(date, shift))}</span></div>`;
+  if(!sh) return `<div class="kpi-shift">${head}<div class="kpi-empty">No ${shift.toLowerCase()} shift was logged for this day.</div></div>`;
+  let html = `<div class="kpi-shift">${head}<div class="kpi-meta">Operators: ${kpiEsc(sh.operator || 'not entered')} · ${sh.done} of ${sh.total} tasks completed</div>`;
+  if(!sh.missed.length){
+    html += '<div class="kpi-ok">Everything was completed on this shift.</div>';
+  } else {
+    html += `<div class="kpi-table-wrap"><table class="kpi-table"><thead><tr><th>Section</th><th>Task not completed</th><th>Operator</th><th>Comment</th></tr></thead><tbody>` +
+      sh.missed.map(e => `<tr><td>${kpiEsc(e.section)}</td><td>${kpiEsc(e.item)}</td><td class="nowrap">${kpiEsc(e.taskOperator || e.operator)}</td><td>${e.comment ? kpiEsc(e.comment) : '<span class="kpi-nocomment">–</span>'}</td></tr>`).join('') +
+      `</tbody></table></div>`;
+  }
+  if(sh.notes) html += `<div class="kpi-note"><strong>Shift notes:</strong> ${kpiEsc(sh.notes)}</div>`;
+  return html + '</div>';
+}
+
+function kpiRenderShift(shownDate, dates, prev){
   const sel = document.getElementById('kpiShiftSelect');
   const body = document.getElementById('kpiShiftBody');
-  const list = kpiState.sessions.slice(0, 40);
-  if(!list.length){
+  if(!dates.length || !shownDate){
     sel.innerHTML = '';
     sel.style.display = 'none';
     body.innerHTML = '<div class="kpi-empty">No shifts have been logged yet. Save a checklist with "Save &amp; push now" and it will show up here.</div>';
     return;
   }
   sel.style.display = '';
-  sel.innerHTML = list.map(s =>
-    `<option value="${kpiEsc(s.key)}"${shown && s.key === shown.key ? ' selected' : ''}>${kpiEsc(kpiFmtDay(s.date))} · ${s.shift}${prev && s.key === prev.key ? ' — previous shift' : ''}</option>`
-  ).join('');
+  sel.innerHTML = dates.slice(0, 40).map(d=>{
+    const present = kpiState.sessions.filter(s => s.date === d).map(s => s.shift).sort().join(' + ');
+    return `<option value="${kpiEsc(d)}"${d === shownDate ? ' selected' : ''}>${kpiEsc(kpiFmtDay(d))} · ${present}${prev && prev.date === d ? ' — previous shift' : ''}</option>`;
+  }).join('');
 
-  if(!shown){ body.innerHTML = ''; return; }
-  const chip = `<span class="shift-chip ${shown.shift.toLowerCase()}">${shown.shift}</span>`;
-  let html = `<div class="kpi-meta">${chip} ${kpiEsc(kpiFmtDayYear(shown.date))} · Operators: ${kpiEsc(shown.operator || 'not entered')} · ${shown.done} of ${shown.total} tasks completed</div>`;
-
-  if(!shown.missed.length){
-    html += '<div class="kpi-ok">Everything was completed on this shift.</div>';
-  } else {
-    html += `<div class="kpi-table-wrap"><table class="kpi-table"><thead><tr><th>Section</th><th>Task not completed</th><th>Operator</th><th>Comment</th></tr></thead><tbody>` +
-      shown.missed.map(e => `<tr><td>${kpiEsc(e.section)}</td><td>${kpiEsc(e.item)}</td><td class="nowrap">${kpiEsc(e.taskOperator || e.operator)}</td><td>${e.comment ? kpiEsc(e.comment) : '<span class="kpi-nocomment">–</span>'}</td></tr>`).join('') +
-      `</tbody></table></div>`;
-  }
-  if(shown.notes) html += `<div class="kpi-note"><strong>Shift notes:</strong> ${kpiEsc(shown.notes)}</div>`;
-  body.innerHTML = html;
+  const find = shift => kpiState.sessions.find(s => s.date === shownDate && s.shift === shift) || null;
+  body.innerHTML = `<div class="kpi-shifts">${kpiShiftBlock(find('Day'), 'Day', shownDate)}${kpiShiftBlock(find('Night'), 'Night', shownDate)}</div>`;
 }
 
 function kpiRenderWeek(week){
   document.getElementById('kpiWeekLabel').textContent =
     kpiFmtDay(week.startKey) + ' – ' + kpiFmtDay(week.endKey);
-  document.getElementById('kpiNextWeek').disabled = week.endKey >= todayKey();
+  document.getElementById('kpiNextWeek').disabled = week.endKey >= kpiNowShiftDate();
   const body = document.getElementById('kpiWeekBody');
 
   if(!week.sessions.length){
@@ -2003,7 +2094,7 @@ function kpiRenderWeek(week){
   const logged = new Set(week.sessions.map(s => s.key));
   let max = 1;
   Object.values(counts).forEach(n => { if(n > max) max = n; });
-  html += '<h3>Not completed per shift</h3><div class="kpi-days">';
+  let barsHtml = '<h3>Not completed per shift</h3><div class="kpi-days">';
   for(let i = 0; i < 7; i++){
     const k = localDateKey(kpiAddDays(kpiState.weekStart, i));
     const d = kpiParseKey(k);
@@ -2013,11 +2104,11 @@ function kpiRenderWeek(week){
       const n = counts[key] || 0;
       return `<div class="kpi-bar-col"><span class="kpi-bar-val">${n}</span><div class="kpi-bar ${shift.toLowerCase()}" style="height:${Math.round(n / max * 70)}px"></div></div>`;
     };
-    html += `<div class="kpi-day${k === todayKey() ? ' today' : ''}"><div class="kpi-day-bars">${bar('Day')}${bar('Night')}</div><div class="kpi-day-lbl">${d.toLocaleDateString(undefined,{weekday:'short'})}<br>${d.getDate()}</div></div>`;
+    barsHtml += `<div class="kpi-day${k === kpiNowShiftDate() ? ' today' : ''}"><div class="kpi-day-bars">${bar('Day')}${bar('Night')}</div><div class="kpi-day-lbl">${d.toLocaleDateString(undefined,{weekday:'short'})}<br>${d.getDate()}</div></div>`;
   }
-  html += '</div><div class="kpi-legend"><span><i style="background:var(--day-accent)"></i>Day</span><span><i style="background:var(--night-accent)"></i>Night</span><span>– = shift not logged</span></div>';
+  barsHtml += '</div><div class="kpi-legend"><span><i style="background:var(--day-accent)"></i>Day</span><span><i style="background:var(--night-accent)"></i>Night</span><span>– = shift not logged</span></div>';
 
-  let secHtml = '', topHtml = '';
+  let secHtml = '', topHtml = '', noteHtml = '';
   /* by section */
   const bySection = new Map();
   week.missed.forEach(e => bySection.set(e.section, (bySection.get(e.section) || 0) + 1));
@@ -2047,12 +2138,12 @@ function kpiRenderWeek(week){
     ).join('');
   }
 
-  if(secHtml || topHtml) html += '<div class="kpi-two"><div>' + secHtml + '</div><div>' + topHtml + '</div></div>';
-
   /* weekly tasks status */
   if(week.weeklyOpen.length){
-    html += `<div class="kpi-note warn"><strong>${week.weekOver ? 'Weekly tasks not completed' : 'Weekly tasks still open'}:</strong> ${week.weeklyOpen.map(o => kpiEsc(o.item)).join('; ')}${week.weekOver ? '' : ' (not counted as missed until the week ends)'}</div>`;
+    noteHtml = `<div class="kpi-note warn"><strong>${week.weekOver ? 'Weekly tasks not completed' : 'Weekly tasks still open'}:</strong> ${week.weeklyOpen.map(o => kpiEsc(o.item)).join('; ')}${week.weekOver ? '' : ' (not counted as missed until the week ends)'}</div>`;
   }
+
+  html += `<div class="kpi-weekgrid"><div>${barsHtml}${noteHtml}</div><div>${secHtml}${topHtml}</div></div>`;
 
   /* full list */
   const listRows = week.missed.slice().sort((a,b)=> (a.date + (a.shift === 'Night' ? '1' : '0')) < (b.date + (b.shift === 'Night' ? '1' : '0')) ? 1 : -1);
