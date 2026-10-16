@@ -529,7 +529,7 @@ body[data-shift="night"] .app-logo{
   .kpi-status{font-family:var(--mono);font-size:0.74rem;opacity:.65;}
   .kpi-status.err{color:var(--warn);opacity:1;}
 
-  .kpi-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+  .kpi-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin-bottom:20px;}
   .kpi-card{
     background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--accent);
     border-radius:10px;padding:14px 16px;box-shadow:var(--shadow);
@@ -609,6 +609,23 @@ body[data-shift="night"] .app-logo{
     .kpi-hbar-row{grid-template-columns:minmax(90px,120px) 1fr 28px;}
     .kpi-bar-col{width:11px;}
   }
+
+  .kpi-card-list{list-style:none;margin:10px 0 0;padding:0;max-height:200px;overflow-y:auto;border-top:1px solid var(--line);}
+  .kpi-card-list li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:0.8rem;line-height:1.3;}
+  .kpi-card-list li:last-child{border-bottom:none;}
+  .kpi-card-list small{display:block;opacity:.6;font-family:var(--mono);font-size:0.66rem;margin-top:1px;}
+  .kpi-card-list b{font-family:var(--mono);font-size:0.74rem;white-space:nowrap;align-self:flex-start;}
+  .kpi-card-list b.bad{color:var(--warn);}
+  body[data-shift="night"] .kpi-card-list b.bad,body[data-shift="night"] .kpi-num.bad{color:#ff9d80;}
+  .kpi-card-empty{margin-top:10px;padding-top:8px;border-top:1px solid var(--line);font-size:0.8rem;opacity:.65;}
+
+  .kpi-task-list{border:1px solid var(--line);border-radius:8px;padding:4px 12px 8px;max-height:300px;overflow:auto;margin-top:8px;}
+  .kpi-task-sec{font-family:var(--mono);font-size:0.66rem;text-transform:uppercase;letter-spacing:0.06em;opacity:.65;margin:10px 0 4px;font-weight:600;}
+  .kpi-task-list label.kpi-task{display:flex;align-items:flex-start;gap:8px;font-family:var(--sans);font-size:0.84rem;color:var(--ink);margin:0;padding:4px 0;cursor:pointer;}
+  .kpi-task-list label.kpi-task input{width:16px;height:16px;padding:0;margin-top:2px;flex-shrink:0;accent-color:var(--accent);cursor:pointer;}
+  .kpi-task-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px;}
+  .kpi-task-bar button{padding:6px 12px;font-size:0.78rem;}
+  #kpiTaskCount{font-family:var(--mono);font-size:0.74rem;opacity:.7;}
 
   @media (prefers-reduced-motion: reduce){
     *{transition:none !important;}
@@ -694,6 +711,15 @@ body[data-shift="night"] .app-logo{
       <div class="full">
         <button class="btn-ghost" id="setPinBtn" type="button">Save PIN</button>
         <button class="btn-ghost" id="lockNowBtn" type="button">Lock now</button>
+      </div>
+      <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:14px;">
+        <label>Tasks tracked on the KPI page</label>
+        <div class="kpi-task-bar">
+          <button class="btn-ghost" id="kpiTasksAll" type="button">Select all</button>
+          <button class="btn-ghost" id="kpiTasksNone" type="button">Select none</button>
+          <span id="kpiTaskCount"></span>
+        </div>
+        <div class="kpi-task-list" id="kpiTaskList"></div>
       </div>
       <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:14px;">
         <label>History log</label>
@@ -1545,6 +1571,9 @@ document.querySelectorAll('.page-tab').forEach(b=> b.addEventListener('click', (
    A task is "not completed" when its Checked column is N.
    ============================================================ */
 const KPI_WEEKLY_SECTIONS = ['Once a Week'];
+let kpiExcluded = new Set();
+try{ kpiExcluded = new Set(JSON.parse(localStorage.getItem('checklist_kpi_excluded') || '[]')); }catch(e){}
+function kpiIsTracked(e){ return !kpiExcluded.has(e.section + '||' + e.item); }
 const kpiState = { entries:null, sessions:null, weekStart:null, userPickKey:null, loading:false };
 
 function kpiEsc(s){
@@ -1599,6 +1628,12 @@ function kpiBuild(rawRows){
   all.forEach(e => lastSid.set(e.date + '|' + e.shift, e.sid));
   const entries = all.filter(e => lastSid.get(e.date + '|' + e.shift) === e.sid);
 
+  return { entries };
+}
+
+/* Sessions are rebuilt on every render so the KPI task selection applies instantly.
+   Every shift still counts as logged; only tracked tasks count as done / missed. */
+function kpiMakeSessions(entries){
   const map = new Map();
   entries.forEach(e=>{
     const key = e.date + '|' + e.shift;
@@ -1610,12 +1645,12 @@ function kpiBuild(rawRows){
     }
     if(!s.operator && e.operator && e.operator !== '(not entered)') s.operator = e.operator;
     if(!s.notes && e.notes) s.notes = e.notes;
+    if(!kpiIsTracked(e)) return;
     if(kpiIsWeekly(e.section)) return; // weekly tasks are handled in the weekly report
     s.total++;
     if(e.checked) s.done++; else s.missed.push(e);
   });
-  const sessions = Array.from(map.values()).sort((a,b)=> a.sortKey < b.sortKey ? 1 : -1); // newest first
-  return { entries, sessions };
+  return Array.from(map.values()).sort((a,b)=> a.sortKey < b.sortKey ? 1 : -1); // newest first
 }
 
 async function kpiLoad(){
@@ -1639,23 +1674,39 @@ async function kpiLoad(){
   status.textContent = 'Loading log...';
 
   try{
-    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`;
-    // The raw media type also works for log files larger than 1 MB.
-    const resp = await fetch(url, { headers:{ 'Authorization':`token ${token}`, 'Accept':'application/vnd.github.raw+json' } });
+    const apiBase = `https://api.github.com/repos/${owner}/${repo}`;
+    const hJson = { 'Authorization':`token ${token}`, 'Accept':'application/vnd.github+json' };
+    const hRaw  = { 'Authorization':`token ${token}`, 'Accept':'application/vnd.github.raw+json' };
+    const isZip = b => b && b.length > 1 && b[0] === 0x50 && b[1] === 0x4B; // "PK" = xlsx file
     let rows = [];
+
+    const resp = await fetch(`${apiBase}/contents/${path}?ref=${encodeURIComponent(branch)}`, { headers:hJson });
     if(resp.status === 404){
       status.textContent = 'No log file found yet at this path.';
     } else if(!resp.ok){
       throw new Error(`GitHub read failed (${resp.status}): ${await resp.text()}`);
     } else {
-      const buf = await resp.arrayBuffer();
-      const wb = XLSX.read(new Uint8Array(buf), { type:'array' });
+      // Read the body once as bytes, then work out whether it is JSON or the raw xlsx.
+      let bytes = new Uint8Array(await resp.arrayBuffer());
+      if(!isZip(bytes)){
+        const data = JSON.parse(new TextDecoder().decode(bytes));
+        if(data.content && data.encoding === 'base64'){
+          const bin = atob(data.content.replace(/\n/g,''));
+          bytes = new Uint8Array(bin.length);
+          for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+        } else {
+          // Files over 1 MB come back without inline content: fetch the blob as raw bytes.
+          const blob = await fetch(`${apiBase}/git/blobs/${data.sha}`, { headers:hRaw });
+          if(!blob.ok) throw new Error(`GitHub read failed (${blob.status}): ${await blob.text()}`);
+          bytes = new Uint8Array(await blob.arrayBuffer());
+        }
+      }
+      const wb = XLSX.read(bytes, { type:'array' });
       rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1 }).slice(1);
       status.textContent = `Loaded ${rows.length} log rows. Updated ${new Date().toLocaleTimeString()}.`;
     }
     const built = kpiBuild(rows);
     kpiState.entries = built.entries;
-    kpiState.sessions = built.sessions;
     kpiRender();
   } catch(err){
     console.error(err);
@@ -1682,7 +1733,7 @@ function kpiPreviousSession(){
 function kpiComputeWeek(){
   const startKey = localDateKey(kpiState.weekStart);
   const endKey = localDateKey(kpiAddDays(kpiState.weekStart, 6));
-  const entries = kpiState.entries.filter(e => e.date >= startKey && e.date <= endKey);
+  const entries = kpiState.entries.filter(e => e.date >= startKey && e.date <= endKey && kpiIsTracked(e));
   const sessions = kpiState.sessions.filter(s => s.date >= startKey && s.date <= endKey);
 
   const regular = entries.filter(e => !kpiIsWeekly(e.section));
@@ -1711,6 +1762,7 @@ function kpiComputeWeek(){
 /* ---------- rendering ---------- */
 function kpiRender(){
   if(!kpiState.entries) return;
+  kpiState.sessions = kpiMakeSessions(kpiState.entries);
   if(!kpiState.weekStart) kpiState.weekStart = kpiMondayOf(new Date());
   const prev = kpiPreviousSession();
   const week = kpiComputeWeek();
@@ -1725,15 +1777,51 @@ function kpiRender(){
   kpiRenderWeek(week);
 }
 
+function kpiLi(text, sub, right, cls){
+  return `<li><span>${kpiEsc(text)}${sub ? `<small>${kpiEsc(sub)}</small>` : ''}</span>${right ? `<b class="${cls || ''}">${kpiEsc(right)}</b>` : ''}</li>`;
+}
+function kpiCardList(lis, empty){
+  return lis.length ? `<ul class="kpi-card-list">${lis.join('')}</ul>` : `<div class="kpi-card-empty">${empty}</div>`;
+}
+
 function kpiRenderCards(prev, week){
   const pct = week.regular.length ? Math.round(week.done / week.regular.length * 100) : null;
   const prevLabel = prev ? `${prev.shift} · ${kpiFmtDay(prev.date)}` : '';
+
+  // 1. previous shift: each task not completed
+  const prevList = prev ? kpiCardList(prev.missed.map(e => kpiLi(e.item, e.section)), 'Everything was completed.') : '';
+
+  // 2. this week: each task not completed, grouped with a count
+  const g = new Map();
+  week.missed.forEach(e=>{
+    const k = e.section + '||' + e.item;
+    const o = g.get(k) || { item:e.item, section:e.section, n:0 };
+    o.n++; g.set(k, o);
+  });
+  const weekLis = Array.from(g.values()).sort((a,b)=> b.n - a.n).map(o => kpiLi(o.item, o.section, '×' + o.n, 'bad'));
+  week.weeklyOpen.forEach(o => weekLis.push(kpiLi(o.item, o.section + ' · weekly', week.weekOver ? 'missed' : 'open', week.weekOver ? 'bad' : '')));
+
+  // 3. completion rate: per section
+  const secMap = new Map();
+  week.regular.forEach(e=>{
+    const o = secMap.get(e.section) || { done:0, total:0 };
+    o.total++; if(e.checked) o.done++;
+    secMap.set(e.section, o);
+  });
+  const secLis = Array.from(secMap.entries()).map(([name, o]) =>
+    kpiLi(name, `${o.done} of ${o.total} done`, Math.round(o.done / o.total * 100) + '%', o.done < o.total ? 'bad' : ''));
+
+  // 4. shifts logged: each shift with how many were missed
+  const shiftLis = week.sessions.slice().reverse().map(s =>
+    kpiLi(`${kpiFmtDay(s.date)} · ${s.shift}`, s.operator ? 'Operators: ' + s.operator : '', s.missed.length ? s.missed.length + ' missed' : 'all done', s.missed.length ? 'bad' : ''));
+
   const cards = [
     {
       lbl:'Not completed · previous shift',
       num: prev ? prev.missed.length : '–',
       cls: prev ? (prev.missed.length ? 'bad' : 'good') : '',
-      sub: prev ? `of ${prev.total} tasks · ${kpiEsc(prevLabel)}` : 'No earlier shift logged'
+      sub: prev ? `of ${prev.total} tasks · ${kpiEsc(prevLabel)}` : 'No earlier shift logged',
+      list: prevList
     },
     {
       lbl:'Not completed · this week',
@@ -1741,23 +1829,26 @@ function kpiRenderCards(prev, week){
       cls: week.sessions.length ? (week.total ? 'bad' : 'good') : '',
       sub: week.sessions.length
         ? (week.weekOver || !week.weeklyOpen.length ? 'tasks across all shifts' : `+ ${week.weeklyOpen.length} weekly task${week.weeklyOpen.length === 1 ? '' : 's'} still open`)
-        : 'No shifts logged this week'
+        : 'No shifts logged this week',
+      list: week.sessions.length ? kpiCardList(weekLis, 'Every task was completed.') : ''
     },
     {
       lbl:'Completion rate · week',
       num: pct === null ? '–' : pct + '%',
       cls: pct === null ? '' : (pct >= 95 ? 'good' : pct < 80 ? 'bad' : ''),
-      sub: pct === null ? '' : `${week.done} of ${week.regular.length} shift tasks done`
+      sub: pct === null ? '' : `${week.done} of ${week.regular.length} shift tasks done`,
+      list: secLis.length ? kpiCardList(secLis, '') : ''
     },
     {
       lbl:'Shifts logged · week',
       num: week.sessions.length,
       cls:'',
-      sub: 'of 14 possible'
+      sub: 'of 14 possible',
+      list: shiftLis.length ? kpiCardList(shiftLis, '') : ''
     }
   ];
   document.getElementById('kpiCards').innerHTML = cards.map(c =>
-    `<div class="kpi-card"><div class="kpi-lbl">${c.lbl}</div><div class="kpi-num ${c.cls}">${c.num}</div><div class="kpi-sub">${c.sub}</div></div>`
+    `<div class="kpi-card"><div class="kpi-lbl">${c.lbl}</div><div class="kpi-num ${c.cls}">${c.num}</div><div class="kpi-sub">${c.sub}</div>${c.list}</div>`
   ).join('');
 }
 
@@ -1870,6 +1961,37 @@ function kpiRenderWeek(week){
   }
   body.innerHTML = html;
 }
+
+/* ---------- settings: choose which tasks are tracked on the KPI page ---------- */
+function kpiBuildTaskSettings(){
+  const host = document.getElementById('kpiTaskList');
+  let html = '';
+  document.querySelectorAll('section.block').forEach(block=>{
+    html += `<div class="kpi-task-sec">${kpiEsc(block.dataset.section)}</div>`;
+    block.querySelectorAll('.item-row').forEach(row=>{
+      const name = row.querySelector('.item span').childNodes[0].textContent.trim();
+      const key = block.dataset.section + '||' + name;
+      html += `<label class="kpi-task"><input type="checkbox" data-key="${kpiEsc(key)}"${kpiExcluded.has(key) ? '' : ' checked'}><span>${kpiEsc(name)}</span></label>`;
+    });
+  });
+  host.innerHTML = html;
+  kpiUpdateTaskCount();
+}
+function kpiUpdateTaskCount(){
+  const boxes = document.querySelectorAll('#kpiTaskList input');
+  const on = Array.from(boxes).filter(b => b.checked).length;
+  document.getElementById('kpiTaskCount').textContent = `${on} of ${boxes.length} tasks tracked`;
+}
+function kpiSaveTaskSelection(){
+  kpiExcluded = new Set(Array.from(document.querySelectorAll('#kpiTaskList input')).filter(b => !b.checked).map(b => b.dataset.key));
+  try{ localStorage.setItem('checklist_kpi_excluded', JSON.stringify(Array.from(kpiExcluded))); }catch(e){}
+  kpiUpdateTaskCount();
+  if(kpiState.entries) kpiRender();
+}
+document.getElementById('kpiTaskList').addEventListener('change', kpiSaveTaskSelection);
+document.getElementById('kpiTasksAll').addEventListener('click', ()=>{ document.querySelectorAll('#kpiTaskList input').forEach(b => b.checked = true); kpiSaveTaskSelection(); });
+document.getElementById('kpiTasksNone').addEventListener('click', ()=>{ document.querySelectorAll('#kpiTaskList input').forEach(b => b.checked = false); kpiSaveTaskSelection(); });
+kpiBuildTaskSettings();
 
 document.getElementById('kpiRefreshBtn').addEventListener('click', kpiLoad);
 document.getElementById('kpiShiftSelect').addEventListener('change', e => { kpiState.userPickKey = e.target.value; kpiRender(); });
