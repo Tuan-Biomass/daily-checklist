@@ -509,6 +509,107 @@ body[data-shift="night"] .app-logo{
   body[data-shift="night"] table.history-table td{border-color:#2a2a2a;color:#fff;}
   body[data-shift="night"] table.history-table td.hist-check-n{color:#777;}
 
+  /* ============================================================
+     PAGE NAV + KPI PAGE
+     ============================================================ */
+  .page-nav{
+    display:flex;gap:6px;margin-bottom:18px;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:5px;box-shadow:var(--shadow);
+  }
+  .page-tab{
+    flex:1;padding:10px 14px;background:transparent;color:var(--ink);opacity:.6;
+    font-family:var(--mono);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.06em;
+    border-radius:7px;
+  }
+  .page-tab:hover{opacity:1;}
+  .page-tab.active{background:var(--accent);color:#fff;opacity:1;}
+
+  .kpi-toolbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+  .kpi-status{font-family:var(--mono);font-size:0.74rem;opacity:.65;}
+  .kpi-status.err{color:var(--warn);opacity:1;}
+
+  .kpi-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:20px;}
+  .kpi-card{
+    background:var(--panel);border:1px solid var(--line);border-top:3px solid var(--accent);
+    border-radius:10px;padding:14px 16px;box-shadow:var(--shadow);
+  }
+  .kpi-lbl{font-family:var(--mono);font-size:0.66rem;text-transform:uppercase;letter-spacing:0.07em;opacity:.65;}
+  .kpi-num{font-family:var(--mono);font-size:2rem;font-weight:700;line-height:1.15;margin:6px 0 2px;}
+  .kpi-num.bad{color:var(--warn);}
+  .kpi-num.good{color:#3f7d58;}
+  .kpi-sub{font-size:0.76rem;opacity:.65;}
+
+  .kpi-panel{
+    background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);
+    border-radius:10px;padding:16px 20px 18px;margin-bottom:18px;box-shadow:var(--shadow);
+  }
+  .kpi-panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px;}
+  .kpi-panel h2{font-size:0.98rem;margin:0;font-weight:600;}
+  .kpi-panel h3{font-family:var(--mono);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.07em;opacity:.65;margin:20px 0 8px;font-weight:600;}
+  .kpi-select{
+    padding:7px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);
+    font-family:var(--mono);font-size:0.78rem;max-width:100%;
+  }
+  .kpi-weeknav{display:flex;align-items:center;gap:8px;}
+  .kpi-weeknav button{padding:6px 12px;font-size:0.8rem;}
+  .kpi-weeklabel{font-family:var(--mono);font-size:0.78rem;font-weight:600;min-width:150px;text-align:center;}
+
+  .kpi-meta{font-family:var(--mono);font-size:0.76rem;opacity:.7;margin-bottom:10px;}
+  .kpi-ok{
+    background:#e3f1e8;color:#276341;border:1px solid #b9d9c5;border-radius:8px;
+    padding:12px 14px;font-size:0.88rem;font-weight:500;
+  }
+  body[data-shift="night"] .kpi-ok{background:#1d3126;color:#8fd1a8;border-color:#2c4a39;}
+  .kpi-empty{font-size:0.88rem;opacity:.7;padding:6px 0;}
+  .kpi-note{
+    font-size:0.82rem;border-radius:8px;padding:10px 12px;margin-top:12px;
+    background:var(--accent-soft);border:1px solid var(--line);
+  }
+  .kpi-note.warn{border-color:var(--warn);}
+
+  .kpi-table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px;}
+  table.kpi-table{width:100%;border-collapse:collapse;font-size:0.82rem;}
+  table.kpi-table th{
+    text-align:left;padding:8px 10px;background:var(--accent-soft);border-bottom:1px solid var(--line);
+    font-family:var(--mono);font-size:0.66rem;text-transform:uppercase;letter-spacing:0.04em;white-space:nowrap;
+  }
+  table.kpi-table td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  table.kpi-table tr:last-child td{border-bottom:none;}
+  table.kpi-table td.nowrap{white-space:nowrap;}
+  table.kpi-table .kpi-nocomment{opacity:.4;}
+  table.kpi-table .shift-chip{margin-left:0;}
+
+  .kpi-days{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;align-items:end;}
+  .kpi-day{text-align:center;}
+  .kpi-day-bars{display:flex;justify-content:center;align-items:flex-end;gap:4px;height:96px;}
+  .kpi-bar-col{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;width:16px;}
+  .kpi-bar-val{font-family:var(--mono);font-size:0.68rem;margin-bottom:2px;}
+  .kpi-bar{width:100%;border-radius:3px 3px 0 0;min-height:2px;}
+  .kpi-bar.day{background:var(--day-accent);}
+  .kpi-bar.night{background:var(--night-accent);}
+  body[data-shift="night"] .kpi-bar.night{background:#8aa4ff;}
+  .kpi-bar.none{background:var(--line);}
+  .kpi-day-lbl{font-family:var(--mono);font-size:0.66rem;margin-top:6px;opacity:.75;line-height:1.3;}
+  .kpi-day.today .kpi-day-lbl{font-weight:700;opacity:1;}
+  .kpi-legend{display:flex;gap:14px;font-family:var(--mono);font-size:0.68rem;opacity:.75;margin-top:10px;flex-wrap:wrap;}
+  .kpi-legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;}
+
+  .kpi-hbar-row{display:grid;grid-template-columns:minmax(110px,170px) 1fr 34px;gap:10px;align-items:center;font-size:0.82rem;margin-bottom:7px;}
+  .kpi-hbar-track{background:var(--accent-soft);border-radius:4px;height:10px;overflow:hidden;}
+  .kpi-hbar-fill{background:var(--accent);height:100%;border-radius:4px;}
+  .kpi-hbar-n{font-family:var(--mono);font-weight:600;text-align:right;}
+  .kpi-hbar-label{overflow:hidden;text-overflow:ellipsis;}
+  .kpi-hbar-label small{display:block;opacity:.6;font-size:0.68rem;font-family:var(--mono);}
+  details.kpi-details summary{
+    cursor:pointer;font-family:var(--mono);font-size:0.74rem;text-transform:uppercase;
+    letter-spacing:0.06em;opacity:.8;margin:20px 0 10px;
+  }
+  @media (max-width:520px){
+    .kpi-hbar-row{grid-template-columns:minmax(90px,120px) 1fr 28px;}
+    .kpi-bar-col{width:11px;}
+  }
+
   @media (prefers-reduced-motion: reduce){
     *{transition:none !important;}
   }
@@ -516,6 +617,13 @@ body[data-shift="night"] .app-logo{
 </head>
 <body data-shift="day">
 <div class="wrap">
+
+  <nav class="page-nav" id="pageNav">
+    <button type="button" class="page-tab active" data-page="checklist">Checklist</button>
+    <button type="button" class="page-tab" data-page="kpi">KPI report</button>
+  </nav>
+
+<div id="checklistPage">
 
   <div class="shift-panel">
     <div class="shift-rivets"><span></span><span></span><span></span><span></span></div>
@@ -662,6 +770,51 @@ body[data-shift="night"] .app-logo{
   </div>
   <div style="font-family:var(--mono);font-size:0.72rem;color:#888;margin-top:6px;">Auto-save is off — click "Save &amp; push now" to log changes. You'll get a warning if you try to leave the page with unsaved changes.</div>
   <div id="status"></div>
+
+</div><!-- /checklistPage -->
+
+<div id="kpiPage" hidden>
+  <header>
+    <div class="brand">
+      <div>
+        <div class="tag">KPI report</div>
+        <h1>Tasks Not Completed</h1>
+      </div>
+    </div>
+    <div class="meta" id="kpiMeta"></div>
+  </header>
+
+  <div class="kpi-toolbar">
+    <button type="button" class="btn-ghost" id="kpiRefreshBtn">Refresh from GitHub</button>
+    <span class="kpi-status" id="kpiStatus"></span>
+  </div>
+
+  <div class="kpi-cards" id="kpiCards"></div>
+
+  <div class="kpi-panel">
+    <div class="kpi-panel-head">
+      <h2>Previous shift report</h2>
+      <select class="kpi-select" id="kpiShiftSelect" aria-label="Choose a shift"></select>
+    </div>
+    <div id="kpiShiftBody"></div>
+  </div>
+
+  <div class="kpi-panel">
+    <div class="kpi-panel-head">
+      <h2>Weekly report</h2>
+      <div class="kpi-weeknav">
+        <button type="button" class="btn-ghost" id="kpiPrevWeek" aria-label="Previous week">&larr;</button>
+        <span class="kpi-weeklabel" id="kpiWeekLabel"></span>
+        <button type="button" class="btn-ghost" id="kpiNextWeek" aria-label="Next week">&rarr;</button>
+      </div>
+    </div>
+    <div id="kpiWeekBody"></div>
+  </div>
+
+  <div style="font-family:var(--mono);font-size:0.72rem;opacity:.6;margin-top:6px;">
+    Only shifts that were saved with "Save &amp; push now" are counted. "Once a Week" tasks appear on every shift, so they are counted once per week (missed only if never completed that week) instead of once per shift.
+  </div>
+</div>
 
 </div>
 
@@ -1373,6 +1526,355 @@ document.querySelectorAll('input[type=checkbox], .item-time').forEach(el=> el.ad
 document.querySelectorAll('.item-comment, .item-operator').forEach(el=> el.addEventListener('input', markDirty));
 document.getElementById('operatorName').addEventListener('input', markDirty);
 document.getElementById('sessionNotes').addEventListener('input', markDirty);
+
+/* ============================================================
+   PAGE NAV
+   ============================================================ */
+function showPage(name){
+  const isKpi = name === 'kpi';
+  document.getElementById('checklistPage').hidden = isKpi;
+  document.getElementById('kpiPage').hidden = !isKpi;
+  document.querySelectorAll('.page-tab').forEach(b=> b.classList.toggle('active', b.dataset.page === name));
+  window.scrollTo(0,0);
+  if(isKpi) kpiOpen();
+}
+document.querySelectorAll('.page-tab').forEach(b=> b.addEventListener('click', ()=> showPage(b.dataset.page)));
+
+/* ============================================================
+   KPI REPORT — reads the same log.xlsx the checklist pushes to.
+   A task is "not completed" when its Checked column is N.
+   ============================================================ */
+const KPI_WEEKLY_SECTIONS = ['Once a Week'];
+const kpiState = { entries:null, sessions:null, weekStart:null, userPickKey:null, loading:false };
+
+function kpiEsc(s){
+  return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function kpiPad(n){ return String(n).padStart(2,'0'); }
+function kpiMondayOf(d){
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - ((x.getDay() + 6) % 7));
+  return x;
+}
+function kpiAddDays(d, n){ const x = new Date(d.getFullYear(), d.getMonth(), d.getDate()); x.setDate(x.getDate() + n); return x; }
+function kpiParseKey(k){ const m = k.match(/^(\d{4})-(\d{2})-(\d{2})$/); return new Date(+m[1], +m[2]-1, +m[3]); }
+function kpiFmtDay(k){ return kpiParseKey(k).toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' }); }
+function kpiFmtDayYear(k){ return kpiParseKey(k).toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short', year:'numeric' }); }
+function kpiIsWeekly(section){ return KPI_WEEKLY_SECTIONS.includes(section); }
+
+/* Accept 'YYYY-MM-DD' text, a JS Date, or an Excel serial number (if someone edited the file in Excel). */
+function kpiNormDate(v){
+  if(v instanceof Date) return localDateKey(v);
+  if(typeof v === 'number'){
+    const d = new Date(Math.round((v - 25569) * 86400000));
+    return d.getUTCFullYear() + '-' + kpiPad(d.getUTCMonth()+1) + '-' + kpiPad(d.getUTCDate());
+  }
+  const m = String(v == null ? '' : v).match(/(\d{4})-(\d{2})-(\d{2})/);
+  return m ? m[0] : null;
+}
+
+function kpiBuild(rawRows){
+  // rawRows: log rows without the header. Column order is the same as the log.
+  const all = [];
+  rawRows.forEach(r=>{
+    if(!r) return;
+    const date = kpiNormDate(r[0]);
+    if(!date) return;
+    all.push({
+      date,
+      shift: String(r[1] == null ? '' : r[1]).trim().toLowerCase() === 'night' ? 'Night' : 'Day',
+      operator: String(r[3] == null ? '' : r[3]).trim(),
+      taskOperator: String(r[4] == null ? '' : r[4]).trim(),
+      section: String(r[5] == null ? '' : r[5]).trim(),
+      item: String(r[6] == null ? '' : r[6]).trim(),
+      checked: String(r[7] == null ? '' : r[7]).trim().toUpperCase() === 'Y',
+      comment: String(r[8] == null ? '' : r[8]).trim(),
+      notes: String(r[9] == null ? '' : r[9]).trim(),
+      sid: String(r[10] == null ? '' : r[10]).trim()
+    });
+  });
+
+  // If a shift was reset and logged again the same day, only the most recent session counts.
+  const lastSid = new Map();
+  all.forEach(e => lastSid.set(e.date + '|' + e.shift, e.sid));
+  const entries = all.filter(e => lastSid.get(e.date + '|' + e.shift) === e.sid);
+
+  const map = new Map();
+  entries.forEach(e=>{
+    const key = e.date + '|' + e.shift;
+    let s = map.get(key);
+    if(!s){
+      s = { key, date:e.date, shift:e.shift, sortKey:e.date + (e.shift === 'Night' ? '1' : '0'),
+            operator:'', notes:'', total:0, done:0, missed:[] };
+      map.set(key, s);
+    }
+    if(!s.operator && e.operator && e.operator !== '(not entered)') s.operator = e.operator;
+    if(!s.notes && e.notes) s.notes = e.notes;
+    if(kpiIsWeekly(e.section)) return; // weekly tasks are handled in the weekly report
+    s.total++;
+    if(e.checked) s.done++; else s.missed.push(e);
+  });
+  const sessions = Array.from(map.values()).sort((a,b)=> a.sortKey < b.sortKey ? 1 : -1); // newest first
+  return { entries, sessions };
+}
+
+async function kpiLoad(){
+  const status = document.getElementById('kpiStatus');
+  const btn = document.getElementById('kpiRefreshBtn');
+  const token = document.getElementById('ghToken').value.trim();
+  const owner = document.getElementById('ghOwner').value.trim();
+  const repo  = document.getElementById('ghRepo').value.trim();
+  const branch = document.getElementById('ghBranch').value.trim() || 'main';
+  const path  = document.getElementById('ghPath').value.trim() || 'log.xlsx';
+
+  if(!token || !owner || !repo){
+    status.className = 'kpi-status err';
+    status.textContent = 'Add your GitHub settings (token, owner, repo) on the Checklist page first.';
+    return;
+  }
+  if(kpiState.loading) return;
+  kpiState.loading = true;
+  btn.disabled = true;
+  status.className = 'kpi-status';
+  status.textContent = 'Loading log...';
+
+  try{
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(branch)}`;
+    // The raw media type also works for log files larger than 1 MB.
+    const resp = await fetch(url, { headers:{ 'Authorization':`token ${token}`, 'Accept':'application/vnd.github.raw+json' } });
+    let rows = [];
+    if(resp.status === 404){
+      status.textContent = 'No log file found yet at this path.';
+    } else if(!resp.ok){
+      throw new Error(`GitHub read failed (${resp.status}): ${await resp.text()}`);
+    } else {
+      const buf = await resp.arrayBuffer();
+      const wb = XLSX.read(new Uint8Array(buf), { type:'array' });
+      rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header:1 }).slice(1);
+      status.textContent = `Loaded ${rows.length} log rows. Updated ${new Date().toLocaleTimeString()}.`;
+    }
+    const built = kpiBuild(rows);
+    kpiState.entries = built.entries;
+    kpiState.sessions = built.sessions;
+    kpiRender();
+  } catch(err){
+    console.error(err);
+    status.className = 'kpi-status err';
+    status.textContent = 'Error: ' + err.message;
+  } finally {
+    kpiState.loading = false;
+    btn.disabled = false;
+  }
+}
+
+function kpiOpen(){
+  if(!kpiState.weekStart) kpiState.weekStart = kpiMondayOf(new Date());
+  document.getElementById('kpiMeta').textContent = new Date().toLocaleDateString(undefined, { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  if(kpiState.entries) kpiRender(); else kpiLoad();
+}
+
+/* ---------- calculations ---------- */
+function kpiPreviousSession(){
+  const cur = todayKey() + (currentShift === 'night' ? '1' : '0');
+  return kpiState.sessions.find(s => s.sortKey < cur) || null; // sessions are newest first
+}
+
+function kpiComputeWeek(){
+  const startKey = localDateKey(kpiState.weekStart);
+  const endKey = localDateKey(kpiAddDays(kpiState.weekStart, 6));
+  const entries = kpiState.entries.filter(e => e.date >= startKey && e.date <= endKey);
+  const sessions = kpiState.sessions.filter(s => s.date >= startKey && s.date <= endKey);
+
+  const regular = entries.filter(e => !kpiIsWeekly(e.section));
+  const missed = regular.filter(e => !e.checked);
+
+  // Weekly tasks: appear on every shift, so judge them once per week.
+  const wmap = new Map();
+  entries.filter(e => kpiIsWeekly(e.section)).forEach(e=>{
+    const k = e.section + '||' + e.item;
+    const o = wmap.get(k) || { section:e.section, item:e.item, done:false, comment:'', taskOperator:'' };
+    if(e.checked) o.done = true;
+    if(e.comment) o.comment = e.comment;
+    wmap.set(k, o);
+  });
+  const weeklyOpen = Array.from(wmap.values()).filter(o => !o.done);
+  const weekOver = endKey < todayKey();
+  const weeklyCounted = weekOver ? weeklyOpen : [];
+
+  return {
+    startKey, endKey, entries, sessions, regular, missed, weeklyOpen, weekOver, weeklyCounted,
+    total: missed.length + weeklyCounted.length,
+    done: regular.length - missed.length
+  };
+}
+
+/* ---------- rendering ---------- */
+function kpiRender(){
+  if(!kpiState.entries) return;
+  if(!kpiState.weekStart) kpiState.weekStart = kpiMondayOf(new Date());
+  const prev = kpiPreviousSession();
+  const week = kpiComputeWeek();
+
+  // pick the shift to show in the shift report
+  let shown = null;
+  if(kpiState.userPickKey) shown = kpiState.sessions.find(s => s.key === kpiState.userPickKey) || null;
+  if(!shown) shown = prev || kpiState.sessions[0] || null;
+
+  kpiRenderCards(prev, week);
+  kpiRenderShift(shown, prev);
+  kpiRenderWeek(week);
+}
+
+function kpiRenderCards(prev, week){
+  const pct = week.regular.length ? Math.round(week.done / week.regular.length * 100) : null;
+  const prevLabel = prev ? `${prev.shift} · ${kpiFmtDay(prev.date)}` : '';
+  const cards = [
+    {
+      lbl:'Not completed · previous shift',
+      num: prev ? prev.missed.length : '–',
+      cls: prev ? (prev.missed.length ? 'bad' : 'good') : '',
+      sub: prev ? `of ${prev.total} tasks · ${kpiEsc(prevLabel)}` : 'No earlier shift logged'
+    },
+    {
+      lbl:'Not completed · this week',
+      num: week.sessions.length ? week.total : '–',
+      cls: week.sessions.length ? (week.total ? 'bad' : 'good') : '',
+      sub: week.sessions.length
+        ? (week.weekOver || !week.weeklyOpen.length ? 'tasks across all shifts' : `+ ${week.weeklyOpen.length} weekly task${week.weeklyOpen.length === 1 ? '' : 's'} still open`)
+        : 'No shifts logged this week'
+    },
+    {
+      lbl:'Completion rate · week',
+      num: pct === null ? '–' : pct + '%',
+      cls: pct === null ? '' : (pct >= 95 ? 'good' : pct < 80 ? 'bad' : ''),
+      sub: pct === null ? '' : `${week.done} of ${week.regular.length} shift tasks done`
+    },
+    {
+      lbl:'Shifts logged · week',
+      num: week.sessions.length,
+      cls:'',
+      sub: 'of 14 possible'
+    }
+  ];
+  document.getElementById('kpiCards').innerHTML = cards.map(c =>
+    `<div class="kpi-card"><div class="kpi-lbl">${c.lbl}</div><div class="kpi-num ${c.cls}">${c.num}</div><div class="kpi-sub">${c.sub}</div></div>`
+  ).join('');
+}
+
+function kpiRenderShift(shown, prev){
+  const sel = document.getElementById('kpiShiftSelect');
+  const body = document.getElementById('kpiShiftBody');
+  const list = kpiState.sessions.slice(0, 40);
+  if(!list.length){
+    sel.innerHTML = '';
+    sel.style.display = 'none';
+    body.innerHTML = '<div class="kpi-empty">No shifts have been logged yet. Save a checklist with "Save &amp; push now" and it will show up here.</div>';
+    return;
+  }
+  sel.style.display = '';
+  sel.innerHTML = list.map(s =>
+    `<option value="${kpiEsc(s.key)}"${shown && s.key === shown.key ? ' selected' : ''}>${kpiEsc(kpiFmtDay(s.date))} · ${s.shift}${prev && s.key === prev.key ? ' — previous shift' : ''}</option>`
+  ).join('');
+
+  if(!shown){ body.innerHTML = ''; return; }
+  const chip = `<span class="shift-chip ${shown.shift.toLowerCase()}">${shown.shift}</span>`;
+  let html = `<div class="kpi-meta">${chip} ${kpiEsc(kpiFmtDayYear(shown.date))} · Operators: ${kpiEsc(shown.operator || 'not entered')} · ${shown.done} of ${shown.total} tasks completed</div>`;
+
+  if(!shown.missed.length){
+    html += '<div class="kpi-ok">Everything was completed on this shift.</div>';
+  } else {
+    html += `<div class="kpi-table-wrap"><table class="kpi-table"><thead><tr><th>Section</th><th>Task not completed</th><th>Operator</th><th>Comment</th></tr></thead><tbody>` +
+      shown.missed.map(e => `<tr><td>${kpiEsc(e.section)}</td><td>${kpiEsc(e.item)}</td><td class="nowrap">${kpiEsc(e.taskOperator || e.operator)}</td><td>${e.comment ? kpiEsc(e.comment) : '<span class="kpi-nocomment">–</span>'}</td></tr>`).join('') +
+      `</tbody></table></div>`;
+  }
+  if(shown.notes) html += `<div class="kpi-note"><strong>Shift notes:</strong> ${kpiEsc(shown.notes)}</div>`;
+  body.innerHTML = html;
+}
+
+function kpiRenderWeek(week){
+  document.getElementById('kpiWeekLabel').textContent =
+    kpiFmtDay(week.startKey) + ' – ' + kpiFmtDay(week.endKey);
+  document.getElementById('kpiNextWeek').disabled = week.endKey >= todayKey();
+  const body = document.getElementById('kpiWeekBody');
+
+  if(!week.sessions.length){
+    body.innerHTML = '<div class="kpi-empty">No shifts were logged this week.</div>';
+    return;
+  }
+
+  let html = `<div class="kpi-meta">${week.sessions.length} shift${week.sessions.length === 1 ? '' : 's'} logged · <strong>${week.total}</strong> task${week.total === 1 ? '' : 's'} not completed in total</div>`;
+
+  /* day-by-day bars */
+  const counts = {};
+  week.missed.forEach(e => { const k = e.date + '|' + e.shift; counts[k] = (counts[k] || 0) + 1; });
+  const logged = new Set(week.sessions.map(s => s.key));
+  let max = 1;
+  Object.values(counts).forEach(n => { if(n > max) max = n; });
+  html += '<h3>Not completed per shift</h3><div class="kpi-days">';
+  for(let i = 0; i < 7; i++){
+    const k = localDateKey(kpiAddDays(kpiState.weekStart, i));
+    const d = kpiParseKey(k);
+    const bar = shift => {
+      const key = k + '|' + shift;
+      if(!logged.has(key)) return `<div class="kpi-bar-col"><span class="kpi-bar-val">–</span><div class="kpi-bar none" style="height:2px"></div></div>`;
+      const n = counts[key] || 0;
+      return `<div class="kpi-bar-col"><span class="kpi-bar-val">${n}</span><div class="kpi-bar ${shift.toLowerCase()}" style="height:${Math.round(n / max * 70)}px"></div></div>`;
+    };
+    html += `<div class="kpi-day${k === todayKey() ? ' today' : ''}"><div class="kpi-day-bars">${bar('Day')}${bar('Night')}</div><div class="kpi-day-lbl">${d.toLocaleDateString(undefined,{weekday:'short'})}<br>${d.getDate()}</div></div>`;
+  }
+  html += '</div><div class="kpi-legend"><span><i style="background:var(--day-accent)"></i>Day</span><span><i style="background:var(--night-accent)"></i>Night</span><span>– = shift not logged</span></div>';
+
+  /* by section */
+  const bySection = new Map();
+  week.missed.forEach(e => bySection.set(e.section, (bySection.get(e.section) || 0) + 1));
+  week.weeklyCounted.forEach(o => bySection.set(o.section, (bySection.get(o.section) || 0) + 1));
+  if(bySection.size){
+    const rows = Array.from(bySection.entries()).sort((a,b)=> b[1] - a[1]);
+    const m = rows[0][1];
+    html += '<h3>By section</h3>' + rows.map(([name, n]) =>
+      `<div class="kpi-hbar-row"><div class="kpi-hbar-label">${kpiEsc(name)}</div><div class="kpi-hbar-track"><div class="kpi-hbar-fill" style="width:${Math.round(n / m * 100)}%"></div></div><div class="kpi-hbar-n">${n}</div></div>`
+    ).join('');
+  }
+
+  /* most missed tasks */
+  const byTask = new Map();
+  week.regular.forEach(e=>{
+    const k = e.section + '||' + e.item;
+    const o = byTask.get(k) || { section:e.section, item:e.item, missed:0, seen:0 };
+    o.seen++;
+    if(!e.checked) o.missed++;
+    byTask.set(k, o);
+  });
+  const top = Array.from(byTask.values()).filter(o => o.missed > 0).sort((a,b)=> b.missed - a.missed).slice(0, 8);
+  if(top.length){
+    const m = top[0].missed;
+    html += '<h3>Most frequently missed tasks</h3>' + top.map(o =>
+      `<div class="kpi-hbar-row"><div class="kpi-hbar-label">${kpiEsc(o.item)}<small>${kpiEsc(o.section)} · missed ${o.missed} of ${o.seen} shifts</small></div><div class="kpi-hbar-track"><div class="kpi-hbar-fill" style="width:${Math.round(o.missed / m * 100)}%"></div></div><div class="kpi-hbar-n">${o.missed}</div></div>`
+    ).join('');
+  }
+
+  /* weekly tasks status */
+  if(week.weeklyOpen.length){
+    html += `<div class="kpi-note warn"><strong>${week.weekOver ? 'Weekly tasks not completed' : 'Weekly tasks still open'}:</strong> ${week.weeklyOpen.map(o => kpiEsc(o.item)).join('; ')}${week.weekOver ? '' : ' (not counted as missed until the week ends)'}</div>`;
+  }
+
+  /* full list */
+  const listRows = week.missed.slice().sort((a,b)=> (a.date + (a.shift === 'Night' ? '1' : '0')) < (b.date + (b.shift === 'Night' ? '1' : '0')) ? 1 : -1);
+  if(listRows.length || week.weeklyCounted.length){
+    html += `<details class="kpi-details"><summary>All tasks not completed this week (${week.total})</summary><div class="kpi-table-wrap"><table class="kpi-table"><thead><tr><th>Date</th><th>Shift</th><th>Section</th><th>Task</th><th>Operator</th><th>Comment</th></tr></thead><tbody>` +
+      listRows.map(e => `<tr><td class="nowrap">${kpiEsc(kpiFmtDay(e.date))}</td><td><span class="shift-chip ${e.shift.toLowerCase()}">${e.shift}</span></td><td>${kpiEsc(e.section)}</td><td>${kpiEsc(e.item)}</td><td class="nowrap">${kpiEsc(e.taskOperator || e.operator)}</td><td>${e.comment ? kpiEsc(e.comment) : '<span class="kpi-nocomment">–</span>'}</td></tr>`).join('') +
+      week.weeklyCounted.map(o => `<tr><td class="nowrap">Week</td><td>–</td><td>${kpiEsc(o.section)}</td><td>${kpiEsc(o.item)}</td><td>–</td><td>${o.comment ? kpiEsc(o.comment) : '<span class="kpi-nocomment">–</span>'}</td></tr>`).join('') +
+      `</tbody></table></div></details>`;
+  } else {
+    html += '<div class="kpi-ok" style="margin-top:16px;">Every task was completed this week.</div>';
+  }
+  body.innerHTML = html;
+}
+
+document.getElementById('kpiRefreshBtn').addEventListener('click', kpiLoad);
+document.getElementById('kpiShiftSelect').addEventListener('change', e => { kpiState.userPickKey = e.target.value; kpiRender(); });
+document.getElementById('kpiPrevWeek').addEventListener('click', ()=>{ kpiState.weekStart = kpiAddDays(kpiState.weekStart, -7); kpiRender(); });
+document.getElementById('kpiNextWeek').addEventListener('click', ()=>{ kpiState.weekStart = kpiAddDays(kpiState.weekStart, 7); kpiRender(); });
 </script>
 
 </body>
