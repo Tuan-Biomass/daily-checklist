@@ -848,7 +848,7 @@ body[data-shift="night"] .app-logo{
     <button class="btn-primary" id="pushBtn">Save &amp; push now</button>
     <button class="btn-ghost" id="resetBtn" type="button">Reset this shift's checklist</button>
   </div>
-  <div style="font-family:var(--mono);font-size:0.72rem;color:#888;margin-top:6px;">Auto-save is off — click "Save &amp; push now" to log changes. You'll get a warning if you try to leave the page with unsaved changes.</div>
+  <div style="font-family:var(--mono);font-size:0.72rem;color:#888;margin-top:6px;">Auto push runs at 05:45 and 17:45 while this page is open — you can also click "Save &amp; push now" any time. You'll get a warning if you try to leave the page with unsaved changes.</div>
   <div id="status"></div>
 
   </div>
@@ -1555,6 +1555,31 @@ async function doPush(){
   }
 }
 document.getElementById('pushBtn').addEventListener('click', doPush);
+
+/* ---------- scheduled auto push (05:45 and 17:45, local time) ----------
+   Fires once per slot per day, 15 minutes before each shift ends. The page
+   must be open for this to run. The check runs every 15s and uses a window
+   (HH:45 to HH:59) so a throttled background tab still catches the slot. */
+const AUTO_PUSH_HOURS = [5, 17];
+const AUTO_PUSH_MINUTE = 45;
+function autoPushSlotKey(now){
+  const h = now.getHours(), m = now.getMinutes();
+  if(!AUTO_PUSH_HOURS.includes(h) || m < AUTO_PUSH_MINUTE) return null;
+  const d = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0') + '-' + String(now.getDate()).padStart(2,'0');
+  return d + 'T' + String(h).padStart(2,'0') + ':' + AUTO_PUSH_MINUTE;
+}
+async function autoPushCheck(){
+  const slot = autoPushSlotKey(new Date());
+  if(!slot) return;
+  let last = null;
+  try{ last = localStorage.getItem('checklist_autopush_last'); }catch(e){}
+  if(last === slot || pushInFlight) return;
+  try{ localStorage.setItem('checklist_autopush_last', slot); }catch(e){}
+  setStatus('Auto push (' + slot.slice(11) + ')...', '');
+  await doPush();
+}
+autoPushCheck();
+setInterval(autoPushCheck, 15000);
 
 /* ---------- history log viewer (settings panel) ---------- */
 let historyRowsCache = null;
