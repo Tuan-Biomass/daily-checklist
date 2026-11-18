@@ -719,6 +719,16 @@ body[data-shift="night"] .app-logo{
   .te-row .te-chip{flex:0 0 96px;width:96px;}
   .te-row button{padding:6px 10px;font-size:0.8rem;line-height:1;}
   .te-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+  .te-cat{border:1px solid var(--line);border-radius:8px;padding:10px 12px 12px;margin:12px 0;background:var(--paper);}
+  .te-cat-head{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px;}
+  .te-cat-head input[type=text]{
+    padding:8px 10px;border:1px solid var(--line);border-radius:6px;
+    font-family:var(--sans);font-size:0.86rem;min-width:0;font-weight:600;
+  }
+  .te-cat-head .te-cat-name{flex:1 1 150px;}
+  .te-cat-head .te-cat-title{flex:1 1 170px;font-weight:400;}
+  .te-cat-head button{padding:6px 10px;font-size:0.8rem;line-height:1;}
+  .te-weekly{display:flex;align-items:center;gap:5px;font-family:var(--sans);font-size:0.78rem;margin:0;cursor:pointer;white-space:nowrap;}
   #taskEditStatus{font-family:var(--mono);font-size:0.78rem;}
   #taskEditStatus.ok{color:var(--accent);}
   #taskEditStatus.err{color:var(--warn);}
@@ -813,9 +823,10 @@ body[data-shift="night"] .app-logo{
         <button class="btn-ghost" id="lockNowBtn" type="button">Lock now</button>
       </div>
       <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:14px;">
-        <label>Edit tasks</label>
-        <div class="te-note">Add, rename, reorder or delete tasks. The optional time (e.g. <b>9 AM</b>, <b>5:30 PM</b>, <b>17:30</b>) makes a task show only on the shift that time falls in; leave it blank for a task on both shifts. Renaming a task counts as a new task in the KPI history. Changes are stored on this device.</div>
+        <label>Edit categories &amp; tasks</label>
+        <div class="te-note">Add, rename, reorder or delete categories and the tasks inside them. <b>Category name</b> is what gets logged and shown in the sidebar; <b>Heading</b> is an optional longer title shown on the checklist. Tick <b>Weekly</b> for a category whose tasks only need doing once a week (the KPI page treats those separately). A task's optional time (e.g. <b>9 AM</b>, <b>5:30 PM</b>, <b>17:30</b>) makes it show only on the shift that time falls in; leave it blank to show on both shifts. Renaming a task counts as a new task in the KPI history. Changes are stored on this device.</div>
         <div id="taskEditor"></div>
+        <button class="btn-ghost" id="addCategoryBtn" type="button" style="padding:7px 14px;font-size:0.82rem;">+ Add category</button>
         <div class="te-actions">
           <button class="btn-primary" id="taskSaveBtn" type="button" style="padding:10px 18px;">Save task changes</button>
           <button class="btn-ghost" id="taskResetBtn" type="button">Reset to defaults</button>
@@ -1597,11 +1608,13 @@ document.querySelectorAll('.shift-option').forEach(btn=>{
 });
 
 /* ============================================================
-   EDITABLE TASKS — the HTML ships with a default list; edits made in
-   Settings are stored in localStorage and rebuild the checklist rows.
-   Sections themselves are fixed (the log and KPI page key on them).
+   EDITABLE CATEGORIES & TASKS — the HTML ships with a default list; edits
+   made in Settings are stored in localStorage and rebuild the checklist.
+   A category's NAME is what the log / KPI page key on; its HEADING is just
+   the title shown on the checklist.
    ============================================================ */
-const TASK_CFG_KEY = 'checklist_task_config_v1';
+const TASK_CFG_KEY_V1 = 'checklist_task_config_v1';   // older format: { sectionName: [tasks] }
+const TASK_CFG_KEY = 'checklist_task_config_v2';      // [{ name, title, weekly, tasks:[{text, chip}] }]
 const TASK_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
 function teEsc(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
@@ -1614,31 +1627,52 @@ function taskRowHtml(text, chip){
     '<input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>';
 }
 function readTaskConfigFromDom(){
-  const cfg = {};
-  document.querySelectorAll('section.block').forEach(block=>{
-    cfg[block.dataset.section] = Array.from(block.querySelectorAll('.item-row')).map(row=>{
-      const chip = row.querySelector('.shift-chip');
-      return { text: row.querySelector('.item span').childNodes[0].textContent.trim(), chip: chip ? chip.textContent.trim() : '' };
-    });
+  return Array.from(document.querySelectorAll('section.block')).map(block=>{
+    const name = block.dataset.section;
+    const title = block.querySelector('.block-head h2').textContent.trim();
+    return {
+      name,
+      title: title === name ? '' : title,
+      weekly: name === 'Once a Week',
+      tasks: Array.from(block.querySelectorAll('.item-row')).map(row=>{
+        const chip = row.querySelector('.shift-chip');
+        return { text: row.querySelector('.item span').childNodes[0].textContent.trim(), chip: chip ? chip.textContent.trim() : '' };
+      })
+    };
   });
-  return cfg;
 }
 const DEFAULT_TASK_CFG = readTaskConfigFromDom();
+let currentTaskCfg = DEFAULT_TASK_CFG;
 
 function loadTaskConfig(){
   try{
-    const cfg = JSON.parse(localStorage.getItem(TASK_CFG_KEY) || 'null');
-    if(cfg && typeof cfg === 'object') return cfg;
+    const v2 = JSON.parse(localStorage.getItem(TASK_CFG_KEY) || 'null');
+    if(Array.isArray(v2) && v2.length) return v2;
+  } catch(e){}
+  try{                                              // migrate a v1 (tasks-only) config
+    const v1 = JSON.parse(localStorage.getItem(TASK_CFG_KEY_V1) || 'null');
+    if(v1 && typeof v1 === 'object' && !Array.isArray(v1)){
+      return DEFAULT_TASK_CFG.map(c => ({ ...c, tasks: Array.isArray(v1[c.name]) ? v1[c.name] : c.tasks }));
+    }
   } catch(e){}
   return null;
 }
+function weeklyCategoryNames(){ return currentTaskCfg.filter(c => c.weekly).map(c => c.name); }
+
 function renderTasksFromConfig(cfg){
   if(!cfg) return;
-  document.querySelectorAll('section.block').forEach(block=>{
-    const list = cfg[block.dataset.section];
-    if(!Array.isArray(list)) return;
-    block.querySelector('.items').innerHTML = list.map(t => taskRowHtml(t.text, t.chip)).join('');
+  document.querySelectorAll('section.block').forEach(b => b.remove());
+  const anchor = document.getElementById('sessionNotes');
+  cfg.forEach(cat=>{
+    const sec = document.createElement('section');
+    sec.className = 'block';
+    sec.dataset.section = cat.name;
+    sec.innerHTML = '<div class="block-head"><h2><span class="swatch"></span>' + teEsc(cat.title || cat.name) +
+      '</h2><span class="count">0 / ' + cat.tasks.length + '</span></div><div class="items">' +
+      cat.tasks.map(t => taskRowHtml(t.text, t.chip)).join('') + '</div>';
+    anchor.parentNode.insertBefore(sec, anchor);
   });
+  currentTaskCfg = cfg;
 }
 
 /* ---- the editor UI (works on a draft in the DOM until "Save") ---- */
@@ -1652,26 +1686,50 @@ function teRow(text, chip){
     '<button type="button" class="btn-ghost te-del" title="Delete task">×</button>';
   return d;
 }
+function teCategory(cat){
+  const card = document.createElement('div');
+  card.className = 'te-cat';
+  card.dataset.orig = cat.name || '';
+  card.innerHTML = '<div class="te-cat-head">' +
+    '<button type="button" class="btn-ghost te-cat-up" title="Move category up">↑</button>' +
+    '<button type="button" class="btn-ghost te-cat-down" title="Move category down">↓</button>' +
+    '<input type="text" class="te-cat-name" placeholder="Category name" value="' + teEsc(cat.name || '') + '">' +
+    '<input type="text" class="te-cat-title" placeholder="Heading (optional)" value="' + teEsc(cat.title || '') + '">' +
+    '<label class="te-weekly" title="Tasks in this category are done once a week"><input type="checkbox" class="te-cat-weekly"' + (cat.weekly ? ' checked' : '') + '> Weekly</label>' +
+    '<button type="button" class="btn-ghost te-cat-del" title="Delete category and its tasks">×</button></div>' +
+    '<div class="te-list"></div>';
+  const list = card.querySelector('.te-list');
+  (cat.tasks || []).forEach(t => list.appendChild(teRow(t.text, t.chip)));
+  const add = document.createElement('button');
+  add.type = 'button'; add.className = 'btn-ghost te-add'; add.textContent = '+ Add task';
+  add.style.cssText = 'padding:6px 12px;font-size:0.8rem;';
+  add.addEventListener('click', ()=>{
+    const r = teRow('', ''); list.appendChild(r); r.querySelector('.te-text').focus();
+  });
+  card.appendChild(add);
+  return card;
+}
 function buildTaskEditor(cfg){
-  cfg = cfg || loadTaskConfig() || DEFAULT_TASK_CFG;
+  cfg = cfg || currentTaskCfg;
   const host = document.getElementById('taskEditor');
   host.innerHTML = '';
-  Object.keys(DEFAULT_TASK_CFG).forEach(section=>{
-    const title = document.createElement('div');
-    title.className = 'te-sec-title'; title.textContent = section;
-    const list = document.createElement('div');
-    list.className = 'te-list'; list.dataset.section = section;
-    (cfg[section] || []).forEach(t => list.appendChild(teRow(t.text, t.chip)));
-    const add = document.createElement('button');
-    add.type = 'button'; add.className = 'btn-ghost te-add'; add.textContent = '+ Add task';
-    add.style.cssText = 'padding:6px 12px;font-size:0.8rem;';
-    add.addEventListener('click', ()=>{
-      const r = teRow('', ''); list.appendChild(r); r.querySelector('.te-text').focus();
-    });
-    host.append(title, list, add);
-  });
+  cfg.forEach(cat => host.appendChild(teCategory(cat)));
 }
+document.getElementById('addCategoryBtn').addEventListener('click', ()=>{
+  const card = teCategory({ name:'', title:'', weekly:false, tasks:[] });
+  document.getElementById('taskEditor').appendChild(card);
+  card.querySelector('.te-cat-name').focus();
+});
 document.getElementById('taskEditor').addEventListener('click', e=>{
+  const cat = e.target.closest('.te-cat');
+  if(!cat) return;
+  if(e.target.closest('.te-cat-del')){
+    const n = cat.querySelectorAll('.te-row').length;
+    if(n && !confirm(`Delete this category and its ${n} task${n === 1 ? '' : 's'}? (Applied when you click Save.)`)) return;
+    cat.remove(); return;
+  }
+  if(e.target.closest('.te-cat-up')){ if(cat.previousElementSibling) cat.parentNode.insertBefore(cat, cat.previousElementSibling); return; }
+  if(e.target.closest('.te-cat-down')){ if(cat.nextElementSibling) cat.parentNode.insertBefore(cat.nextElementSibling, cat); return; }
   const row = e.target.closest('.te-row');
   if(!row) return;
   if(e.target.closest('.te-del')) row.remove();
@@ -1684,25 +1742,37 @@ function taskEditStatus(msg, cls){
   el.textContent = msg; el.className = cls || '';
 }
 function readTaskEditor(){
-  const cfg = {};
+  const cfg = [], renames = new Map(), names = new Set();
   let error = null;
-  document.querySelectorAll('#taskEditor .te-list').forEach(list=>{
-    const section = list.dataset.section;
-    const seen = new Set();
-    cfg[section] = [];
-    list.querySelectorAll('.te-row').forEach(row=>{
+  document.querySelectorAll('#taskEditor .te-cat').forEach(card=>{
+    const name = card.querySelector('.te-cat-name').value.replace(/\s+/g, ' ').trim();
+    const title = card.querySelector('.te-cat-title').value.replace(/\s+/g, ' ').trim();
+    const weekly = card.querySelector('.te-cat-weekly').checked;
+    const rows = Array.from(card.querySelectorAll('.te-row'));
+    const tasks = [], seen = new Set();
+    rows.forEach(row=>{
       const text = row.querySelector('.te-text').value.replace(/\s+/g, ' ').trim();
       const chip = row.querySelector('.te-chip').value.trim();
       if(!text && !chip) return;                        // ignore fully blank rows
-      if(!text){ error = error || `${section}: a task has a time but no description.`; return; }
-      if(chip && parseHourFromText(chip) === null){ error = error || `${section}: "${chip}" isn't a valid time (use e.g. 9 AM, 5:30 PM or 17:30).`; return; }
+      if(!text){ error = error || `${name || 'A category'}: a task has a time but no description.`; return; }
+      if(chip && parseHourFromText(chip) === null){ error = error || `${name || 'A category'}: "${chip}" isn't a valid time (use e.g. 9 AM, 5:30 PM or 17:30).`; return; }
       const k = text.toLowerCase() + '||' + chip.toLowerCase();
-      if(seen.has(k)){ error = error || `${section}: "${text}" appears twice with the same time.`; return; }
+      if(seen.has(k)){ error = error || `${name}: "${text}" appears twice with the same time.`; return; }
       seen.add(k);
-      cfg[section].push({ text, chip });
+      tasks.push({ text, chip });
     });
+    if(!name){
+      if(!title && !tasks.length) return;               // fully blank new category: ignore
+      error = error || 'Every category needs a name.'; return;
+    }
+    if(name.includes('||')){ error = error || `Category name "${name}" can't contain "||".`; return; }
+    if(names.has(name.toLowerCase())){ error = error || `Two categories are called "${name}".`; return; }
+    names.add(name.toLowerCase());
+    const orig = card.dataset.orig;
+    if(orig && orig !== name) renames.set(orig, name);
+    cfg.push({ name, title: title === name ? '' : title, weekly, tasks });
   });
-  return { cfg, error };
+  return { cfg, renames, error };
 }
 
 /* Move any saved (position-based) shift state onto task keys before the rows change. */
@@ -1719,38 +1789,64 @@ function keyifyStoredStates(){
     } catch(e){}
   });
 }
+/* Category renamed: carry saved ticks and KPI tracking choices over to the new name. */
+function remapCategoryNames(renames){
+  if(!renames.size) return;
+  const swap = key => {
+    const i = key.indexOf('||');
+    if(i < 0) return key;
+    const head = key.slice(0, i);
+    return renames.has(head) ? renames.get(head) + key.slice(i) : key;
+  };
+  ['day','night'].forEach(shift=>{
+    try{
+      const raw = localStorage.getItem(localStateKey(shift));
+      if(!raw) return;
+      const st = JSON.parse(raw);
+      if(!st || !Array.isArray(st.items)) return;
+      st.items.forEach(it => { if(it && it.key) it.key = swap(it.key); });
+      localStorage.setItem(localStateKey(shift), JSON.stringify(st));
+    } catch(e){}
+  });
+  try{
+    kpiExcluded = new Set(Array.from(kpiExcluded).map(swap));
+    localStorage.setItem('checklist_kpi_excluded', JSON.stringify(Array.from(kpiExcluded)));
+  } catch(e){}
+}
 
-function applyTaskConfig(cfg){
+function applyTaskConfig(cfg, renames){
   keyifyStoredStates();
   saveLocalState(currentShift);                  // keep ticks/times/comments, keyed by task
+  remapCategoryNames(renames || new Map());
   renderTasksFromConfig(cfg);
   allItemRows().forEach(wireRow);
   classifyRowsByTime();
   restoreLocalState(currentShift);
   renderShiftChrome();
   kpiBuildTaskSettings();
+  if(kpiState.entries) kpiRender();
 }
 
 document.getElementById('taskSaveBtn').addEventListener('click', ()=>{
-  const { cfg, error } = readTaskEditor();
+  const { cfg, renames, error } = readTaskEditor();
   if(error){ taskEditStatus(error, 'err'); return; }
-  const total = Object.values(cfg).reduce((n, l) => n + l.length, 0);
-  if(!total){ taskEditStatus('Add at least one task.', 'err'); return; }
+  const total = cfg.reduce((n, c) => n + c.tasks.length, 0);
+  if(!cfg.length || !total){ taskEditStatus('Add at least one category with at least one task.', 'err'); return; }
   try{ localStorage.setItem(TASK_CFG_KEY, JSON.stringify(cfg)); }
   catch(e){ taskEditStatus('Could not save tasks on this device.', 'err'); return; }
-  applyTaskConfig(cfg);
+  applyTaskConfig(cfg, renames);
   buildTaskEditor(cfg);
-  taskEditStatus(`Saved — ${total} tasks across ${Object.keys(cfg).length} sections.`, 'ok');
+  taskEditStatus(`Saved — ${total} task${total === 1 ? '' : 's'} in ${cfg.length} categor${cfg.length === 1 ? 'y' : 'ies'}.`, 'ok');
 });
 document.getElementById('taskResetBtn').addEventListener('click', ()=>{
-  if(!confirm('Reset the task list to the original defaults? Your edits will be lost.')) return;
-  try{ localStorage.removeItem(TASK_CFG_KEY); }catch(e){}
-  applyTaskConfig(DEFAULT_TASK_CFG);
+  if(!confirm('Reset categories and tasks to the original defaults? Your edits will be lost.')) return;
+  try{ localStorage.removeItem(TASK_CFG_KEY); localStorage.removeItem(TASK_CFG_KEY_V1); }catch(e){}
+  applyTaskConfig(DEFAULT_TASK_CFG, new Map());
   buildTaskEditor(DEFAULT_TASK_CFG);
-  taskEditStatus('Task list reset to defaults.', 'ok');
+  taskEditStatus('Reset to the default categories and tasks.', 'ok');
 });
 
-/* use the saved task list from the first render */
+/* use the saved list from the first render */
 renderTasksFromConfig(loadTaskConfig());
 buildTaskEditor();
 
@@ -2160,7 +2256,7 @@ function kpiAddDays(d, n){ const x = new Date(d.getFullYear(), d.getMonth(), d.g
 function kpiParseKey(k){ const m = k.match(/^(\d{4})-(\d{2})-(\d{2})$/); return new Date(+m[1], +m[2]-1, +m[3]); }
 function kpiFmtDay(k){ return kpiParseKey(k).toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short' }); }
 function kpiFmtDayYear(k){ return kpiParseKey(k).toLocaleDateString(undefined, { weekday:'short', day:'numeric', month:'short', year:'numeric' }); }
-function kpiIsWeekly(section){ return KPI_WEEKLY_SECTIONS.includes(section); }
+function kpiIsWeekly(section){ return KPI_WEEKLY_SECTIONS.includes(section) || weeklyCategoryNames().includes(section); }
 
 /* Accept 'YYYY-MM-DD' text, a JS Date, or an Excel serial number (if someone edited the file in Excel). */
 function kpiNormDate(v){
