@@ -676,6 +676,36 @@ body[data-shift="night"] .app-logo{
   @media (prefers-reduced-motion: reduce){
     *{transition:none !important;}
   }
+
+  /* ---------- photos ---------- */
+  .photos-panel{
+    margin-top:10px;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:14px 16px;box-shadow:var(--shadow);
+  }
+  .photos-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .photos-title{font-family:var(--mono);font-size:0.78rem;letter-spacing:0.08em;text-transform:uppercase;font-weight:600;}
+  .photos-count{font-family:var(--mono);font-size:0.74rem;color:#888;margin-right:auto;}
+  .photos-head button{padding:8px 14px;font-size:0.82rem;}
+  .photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-top:12px;}
+  .photo-grid:empty{display:none;}
+  .photo-card{position:relative;border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--paper);}
+  .photo-card img{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;cursor:zoom-in;}
+  .photo-card.zoomed{grid-column:1 / -1;}
+  .photo-card.zoomed img{aspect-ratio:auto;max-height:70vh;object-fit:contain;cursor:zoom-out;background:#000;}
+  .photo-caption{
+    width:100%;border:none;border-top:1px solid var(--line);border-radius:0;
+    font-family:var(--sans);font-size:0.78rem;padding:7px 9px;
+  }
+  .photo-caption:focus{outline:none;box-shadow:inset 0 0 0 2px var(--accent-dim);}
+  .photo-remove{
+    position:absolute;top:5px;right:5px;width:26px;height:26px;padding:0;border-radius:50%;
+    background:rgba(0,0,0,0.6);color:#fff;font-size:1rem;line-height:1;
+  }
+  .photo-state{
+    position:absolute;top:5px;left:5px;font-family:var(--mono);font-size:0.62rem;font-weight:600;
+    padding:2px 6px;border-radius:4px;background:rgba(0,0,0,0.6);color:#fff;
+  }
+  .photo-state.done{background:rgba(30,120,70,0.9);}
 </style>
 </head>
 <body data-shift="day">
@@ -843,6 +873,16 @@ body[data-shift="night"] .app-logo{
   </section>
 
   <textarea class="notes" id="sessionNotes" placeholder="Optional notes for this session..."></textarea>
+
+  <div class="photos-panel" id="photosPanel">
+    <div class="photos-head">
+      <span class="photos-title">Photos</span>
+      <span class="photos-count" id="photosCount">none added</span>
+      <button class="btn-ghost" id="addPhotoBtn" type="button">+ Add photos</button>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" multiple hidden>
+    <div class="photo-grid" id="photoGrid"></div>
+  </div>
 
   <div class="actions">
     <button class="btn-primary" id="pushBtn">Save &amp; push now</button>
@@ -1123,6 +1163,7 @@ function restoreLocalState(shift){
   try{ raw = localStorage.getItem(localStateKey(shift)); } catch(e){ return; }
   document.getElementById('operatorName').value = '';
   document.getElementById('sessionNotes').value = '';
+  loadPhotos(shift);
   allItemRows().forEach(row=>{
     const checkbox = row.querySelector('input[type=checkbox]');
     checkbox.checked = false;
@@ -1175,6 +1216,199 @@ function markDirty(){
 window.addEventListener('beforeunload', (e)=>{
   if(hasUnsavedChanges){ e.preventDefault(); e.returnValue = ''; return ''; }
 });
+
+
+/* ============================================================
+   PHOTOS — compressed in the browser, kept in IndexedDB per shift
+   (so they survive a reload), and uploaded to the GitHub repo on
+   push under photos/<shiftDate>_<shift>_<sessionId>/<id>.jpg
+   ============================================================ */
+let photos = [];            // [{ id, dataUrl, caption, uploaded }]
+let photosLoadToken = 0;
+const PHOTO_MAX_EDGE = 1600;
+const PHOTO_QUALITY = 0.75;
+
+function photoDb(){
+  return new Promise((resolve, reject)=>{
+    if(!window.indexedDB) return reject(new Error('IndexedDB unavailable'));
+    const req = indexedDB.open('checklist_photos', 1);
+    req.onupgradeneeded = ()=> req.result.createObjectStore('photos');
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  });
+}
+async function idbGet(key){
+  const db = await photoDb();
+  return new Promise((res, rej)=>{
+    const r = db.transaction('photos').objectStore('photos').get(key);
+    r.onsuccess = ()=> res(r.result); r.onerror = ()=> rej(r.error);
+  });
+}
+async function idbSet(key, val){
+  const db = await photoDb();
+  return new Promise((res, rej)=>{
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').put(val, key);
+    tx.oncomplete = ()=> res(); tx.onerror = ()=> rej(tx.error);
+  });
+}
+async function idbDelete(key){
+  const db = await photoDb();
+  return new Promise((res, rej)=>{
+    const tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').delete(key);
+    tx.oncomplete = ()=> res(); tx.onerror = ()=> rej(tx.error);
+  });
+}
+async function idbPrune(keepKeys){
+  // Remove stale days' photos, but never ones that haven't been uploaded yet.
+  const db = await photoDb();
+  return new Promise((res)=>{
+    const tx = db.transaction('photos', 'readwrite');
+    const store = tx.objectStore('photos');
+    const cur = store.openCursor();
+    cur.onsuccess = ()=>{
+      const c = cur.result;
+      if(!c) return;
+      const list = c.value || [];
+      if(!keepKeys.includes(c.key) && list.every(p => p.uploaded)) c.delete();
+      c.continue();
+    };
+    tx.oncomplete = ()=> res(); tx.onerror = ()=> res();
+  });
+}
+
+function photoStoreKey(shift){ return 'photos_' + localStateKey(shift); }
+function savePhotosLocal(){
+  const key = photoStoreKey(currentShift);
+  const op = photos.length ? idbSet(key, photos) : idbDelete(key);
+  op.catch(e => console.error('Could not save photos locally', e));
+}
+async function loadPhotos(shift){
+  const token = ++photosLoadToken;
+  photos = [];
+  renderPhotos();
+  try{
+    const saved = await idbGet(photoStoreKey(shift));
+    if(token !== photosLoadToken || shift !== currentShift) return;
+    if(Array.isArray(saved)){ photos = saved; renderPhotos(); }
+  } catch(e){ console.error('Could not load photos', e); }
+}
+function clearPhotos(){
+  photosLoadToken++;
+  photos = [];
+  renderPhotos();
+  idbDelete(photoStoreKey(currentShift)).catch(()=>{});
+}
+
+function renderPhotos(){
+  const grid = document.getElementById('photoGrid');
+  grid.innerHTML = '';
+  photos.forEach(p=>{
+    const card = document.createElement('div');
+    card.className = 'photo-card';
+
+    const img = document.createElement('img');
+    img.src = p.dataUrl; img.alt = p.caption || 'Shift photo';
+    img.addEventListener('click', ()=> card.classList.toggle('zoomed'));
+
+    const state = document.createElement('span');
+    state.className = 'photo-state' + (p.uploaded ? ' done' : '');
+    state.textContent = p.uploaded ? '✓ Uploaded' : 'Not pushed';
+
+    const rm = document.createElement('button');
+    rm.type = 'button'; rm.className = 'photo-remove'; rm.title = 'Remove photo'; rm.textContent = '×';
+    rm.addEventListener('click', ()=>{
+      photos = photos.filter(x => x.id !== p.id);
+      renderPhotos(); savePhotosLocal(); markDirty();
+    });
+
+    const cap = document.createElement('input');
+    cap.type = 'text'; cap.className = 'photo-caption'; cap.placeholder = 'Caption (optional)'; cap.value = p.caption || '';
+    cap.addEventListener('input', ()=>{ p.caption = cap.value; markDirty(); });
+    cap.addEventListener('change', savePhotosLocal);
+
+    card.append(img, state, rm, cap);
+    grid.appendChild(card);
+  });
+  const n = photos.length, pending = photos.filter(p => !p.uploaded).length;
+  document.getElementById('photosCount').textContent =
+    n === 0 ? 'none added' : `${n} photo${n===1?'':'s'}` + (pending ? ` · ${pending} not pushed` : ' · all uploaded');
+}
+
+function compressImage(file){
+  return new Promise((resolve, reject)=>{
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = ()=>{
+      let { naturalWidth:w, naturalHeight:h } = img;
+      const scale = Math.min(1, PHOTO_MAX_EDGE / Math.max(w, h));
+      w = Math.round(w * scale); h = Math.round(h * scale);
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(url);
+      resolve(canvas.toDataURL('image/jpeg', PHOTO_QUALITY));
+    };
+    img.onerror = ()=>{ URL.revokeObjectURL(url); reject(new Error('Could not read ' + (file.name || 'image'))); };
+    img.src = url;
+  });
+}
+
+document.getElementById('addPhotoBtn').addEventListener('click', ()=> document.getElementById('photoInput').click());
+document.getElementById('photoInput').addEventListener('change', async (e)=>{
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  if(!files.length) return;
+  setStatus(`Processing ${files.length} photo${files.length===1?'':'s'}...`, '');
+  let failed = 0;
+  for(const f of files){
+    try{
+      const dataUrl = await compressImage(f);
+      photos.push({ id: 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2,6), dataUrl, caption:'', uploaded:false });
+    } catch(err){ console.error(err); failed++; }
+  }
+  renderPhotos(); savePhotosLocal(); markDirty();
+  setStatus(failed ? `${failed} photo${failed===1?'':'s'} could not be read (unsupported format?).` : 'Photos added — click "Save & push now" to upload them.', failed ? 'err' : 'ok');
+});
+
+function photoFolder(){
+  const shiftDate = localStorage.getItem('checklist_session_date_' + currentShift) || shiftDateKey(currentShift);
+  return `photos/${shiftDate}_${currentShift}_${sessionId}`;
+}
+
+/* Uploads every photo not yet pushed. Failures don't block the log push. */
+async function uploadPendingPhotos(owner, repo, branch, headers){
+  const pending = photos.filter(p => !p.uploaded);
+  let failed = 0, done = 0;
+  const folder = photoFolder();
+  for(const p of pending){
+    setStatus(`Uploading photo ${done + failed + 1} of ${pending.length}...`, '');
+    const url = `https://api.github.com/repos/${owner}/${repo}/contents/${folder}/${p.id}.jpg`;
+    const body = {
+      message: 'Checklist photo' + (p.caption ? ': ' + p.caption.slice(0, 80) : ''),
+      content: p.dataUrl.split(',')[1],
+      branch
+    };
+    let ok = false;
+    for(let attempt = 1; attempt <= 3 && !ok; attempt++){
+      try{
+        const r = await fetch(url, { method:'PUT', headers:{ ...headers, 'Content-Type':'application/json' }, body: JSON.stringify(body) });
+        if(r.ok || r.status === 422) ok = true;          // 422 = file already exists from an earlier attempt
+        else if(r.status === 409) await new Promise(res => setTimeout(res, 400 * attempt + Math.random()*300));
+        else break;
+      } catch(e){ await new Promise(res => setTimeout(res, 500 * attempt)); }
+    }
+    if(ok){ p.uploaded = true; done++; } else failed++;
+  }
+  if(pending.length){ renderPhotos(); savePhotosLocal(); }
+  return { done, failed };
+}
+
+/* tidy up old, already-uploaded photos from previous days */
+idbPrune([photoStoreKey('day'), photoStoreKey('night')]).catch(()=>{});
 
 /* ---------- checklist behavior ---------- */
 function updateCounts(){
@@ -1271,6 +1505,7 @@ document.getElementById('resetBtn').addEventListener('click', ()=>{
   });
   document.getElementById('sessionNotes').value = '';
   document.getElementById('operatorName').value = '';
+  clearPhotos();
   updateCounts();
   hasUnsavedChanges = false;
   updateUnsavedIndicator();
@@ -1335,7 +1570,11 @@ function gatherRows(){
   // The date this shift started on (a night shift saved after midnight still belongs to the evening it began).
   const shiftDate = localStorage.getItem('checklist_session_date_' + currentShift) || shiftDateKey(currentShift);
   const operator = document.getElementById('operatorName').value.trim() || '(not entered)';
-  const sessionNotes = document.getElementById('sessionNotes').value.trim();
+  const uploadedCount = photos.filter(p => p.uploaded).length;
+  const sessionNotes = [
+    document.getElementById('sessionNotes').value.trim(),
+    uploadedCount ? `Photos (${uploadedCount}): ${photoFolder()}/` : ''
+  ].filter(Boolean).join(' | ');
   const shiftLabel = currentShift === 'day' ? 'Day' : 'Night';
   const rows = [];
   document.querySelectorAll('.block').forEach(block=>{
@@ -1481,6 +1720,7 @@ async function doPush(){
   try{
     let newRowsCount = 0;
     let lastErr = null;
+    const photoResult = await uploadPendingPhotos(owner, repo, branch, headers);
 
     for(let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++){
       setStatus(attempt === 1 ? 'Reading existing log from GitHub...' : `Retrying (${attempt-1})...`, '');
@@ -1543,9 +1783,16 @@ async function doPush(){
 
     if(lastErr) throw lastErr;
 
-    hasUnsavedChanges = false;
-    updateUnsavedIndicator();
-    setStatus(`Logged ${newRowsCount} rows (${currentShift} shift) to ${path} on ${branch}.`, 'ok');
+    let msg = `Logged ${newRowsCount} rows (${currentShift} shift) to ${path} on ${branch}.`;
+    if(photoResult.done) msg += ` Uploaded ${photoResult.done} photo${photoResult.done===1?'':'s'}.`;
+    if(photoResult.failed){
+      msg += ` ${photoResult.failed} photo${photoResult.failed===1?'':'s'} failed to upload — push again to retry.`;
+      setStatus(msg, 'err');
+    } else {
+      hasUnsavedChanges = false;
+      updateUnsavedIndicator();
+      setStatus(msg, 'ok');
+    }
   } catch(err){
     console.error(err);
     setStatus('Error: ' + err.message, 'err');
