@@ -706,6 +706,22 @@ body[data-shift="night"] .app-logo{
     padding:2px 6px;border-radius:4px;background:rgba(0,0,0,0.6);color:#fff;
   }
   .photo-state.done{background:rgba(30,120,70,0.9);}
+
+  /* ---------- task editor (settings) ---------- */
+  .te-note{font-family:var(--sans);font-size:0.78rem;opacity:.75;margin:4px 0 8px;line-height:1.4;}
+  .te-sec-title{font-family:var(--mono);font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;opacity:.7;margin:14px 0 6px;}
+  .te-row{display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
+  .te-row input[type=text]{
+    padding:8px 10px;border:1px solid var(--line);border-radius:6px;
+    font-family:var(--sans);font-size:0.84rem;min-width:0;
+  }
+  .te-row .te-text{flex:1 1 220px;}
+  .te-row .te-chip{flex:0 0 96px;width:96px;}
+  .te-row button{padding:6px 10px;font-size:0.8rem;line-height:1;}
+  .te-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;align-items:center;}
+  #taskEditStatus{font-family:var(--mono);font-size:0.78rem;}
+  #taskEditStatus.ok{color:var(--accent);}
+  #taskEditStatus.err{color:var(--warn);}
 </style>
 </head>
 <body data-shift="day">
@@ -795,6 +811,16 @@ body[data-shift="night"] .app-logo{
       <div class="full">
         <button class="btn-ghost" id="setPinBtn" type="button">Save PIN</button>
         <button class="btn-ghost" id="lockNowBtn" type="button">Lock now</button>
+      </div>
+      <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:14px;">
+        <label>Edit tasks</label>
+        <div class="te-note">Add, rename, reorder or delete tasks. The optional time (e.g. <b>9 AM</b>, <b>5:30 PM</b>, <b>17:30</b>) makes a task show only on the shift that time falls in; leave it blank for a task on both shifts. Renaming a task counts as a new task in the KPI history. Changes are stored on this device.</div>
+        <div id="taskEditor"></div>
+        <div class="te-actions">
+          <button class="btn-primary" id="taskSaveBtn" type="button" style="padding:10px 18px;">Save task changes</button>
+          <button class="btn-ghost" id="taskResetBtn" type="button">Reset to defaults</button>
+          <span id="taskEditStatus"></span>
+        </div>
       </div>
       <div class="full" style="border-top:1px solid var(--line);margin-top:6px;padding-top:14px;">
         <label>Tasks tracked on the KPI page</label>
@@ -1141,8 +1167,16 @@ function localStateKey(shift){ return 'checklist_localstate_' + shiftDateKey(shi
 function allItemRows(){ return Array.from(document.querySelectorAll('.item-row')); }
 function visibleItemRows(){ return allItemRows().filter(r => !r.hidden); }
 
+function rowKey(row){
+  const section = row.closest('.block').dataset.section;
+  const text = row.querySelector('.item span').childNodes[0].textContent.trim();
+  const chip = row.querySelector('.shift-chip');
+  return section + '||' + text + '||' + (chip ? chip.textContent.trim() : '');
+}
+
 function saveLocalState(shift){
   const items = allItemRows().map(row=>({
+    key: rowKey(row),
     checked: row.querySelector('input[type=checkbox]').checked,
     time: row.querySelector('.item-time').value,
     comment: row.querySelector('.item-comment').value,
@@ -1179,8 +1213,12 @@ function restoreLocalState(shift){
 
   document.getElementById('operatorName').value = state.operatorName || '';
   document.getElementById('sessionNotes').value = state.sessionNotes || '';
+  // New-format states carry a key per task, so they survive tasks being edited,
+  // added or reordered. Older states (no keys) fall back to position.
+  const byKey = new Map();
+  (state.items || []).forEach(it=>{ if(it && it.key) byKey.set(it.key, it); });
   allItemRows().forEach((row, i)=>{
-    const saved = state.items && state.items[i];
+    const saved = byKey.size ? byKey.get(rowKey(row)) : (state.items && state.items[i]);
     if(!saved) return;
     const checkbox = row.querySelector('input[type=checkbox]');
     checkbox.checked = !!saved.checked;
@@ -1453,7 +1491,7 @@ function nowTimeValue(){
 /* Checking a task stamps the current time automatically. If a time was
    already entered by hand it is kept, so it can still be backdated.
    Unchecking clears the time only if it was the auto-stamped one. */
-document.querySelectorAll('input[type=checkbox]').forEach(box=>{
+function wireCheckbox(box){
   box.addEventListener('change', ()=>{
     const row = box.closest('.item-row');
     const timeInput = row.querySelector('.item-time');
@@ -1470,12 +1508,12 @@ document.querySelectorAll('input[type=checkbox]').forEach(box=>{
     updateCounts();
     markDirty();
   });
-});
+}
 
 /* If the time is cleared after an item was checked off, uncheck it too —
    time stays mandatory for a checked state at all times, not just at the
    moment the box is ticked. */
-document.querySelectorAll('.item-time').forEach(timeInput=>{
+function wireTime(timeInput){
   timeInput.addEventListener('change', ()=>{
     delete timeInput.dataset.auto;
     if(!timeInput.value){
@@ -1488,7 +1526,7 @@ document.querySelectorAll('.item-time').forEach(timeInput=>{
       }
     }
   });
-});
+}
 
 document.getElementById('resetBtn').addEventListener('click', ()=>{
   localStorage.setItem('checklist_session_date_' + currentShift, shiftDateKey(currentShift));
@@ -1557,6 +1595,164 @@ function switchShift(nextShift){
 document.querySelectorAll('.shift-option').forEach(btn=>{
   btn.addEventListener('click', ()=> switchShift(btn.dataset.shift));
 });
+
+/* ============================================================
+   EDITABLE TASKS — the HTML ships with a default list; edits made in
+   Settings are stored in localStorage and rebuild the checklist rows.
+   Sections themselves are fixed (the log and KPI page key on them).
+   ============================================================ */
+const TASK_CFG_KEY = 'checklist_task_config_v1';
+const TASK_SVG = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>';
+function teEsc(v){ return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function taskRowHtml(text, chip){
+  return '<div class="item-row"><label class="item"><input type="checkbox"><span>' + teEsc(text) +
+    (chip ? '<span class="shift-chip">' + teEsc(chip) + '</span>' : '') +
+    '</span></label><div class="item-meta"><div class="item-time-wrap">' + TASK_SVG +
+    '<input type="time" class="item-time" title="Time completed (auto-filled when checked)"></div>' +
+    '<input type="text" class="item-operator" placeholder="Operator" title="Operator who completed this task">' +
+    '<input type="text" class="item-comment" placeholder="Comment (optional)"></div></div>';
+}
+function readTaskConfigFromDom(){
+  const cfg = {};
+  document.querySelectorAll('section.block').forEach(block=>{
+    cfg[block.dataset.section] = Array.from(block.querySelectorAll('.item-row')).map(row=>{
+      const chip = row.querySelector('.shift-chip');
+      return { text: row.querySelector('.item span').childNodes[0].textContent.trim(), chip: chip ? chip.textContent.trim() : '' };
+    });
+  });
+  return cfg;
+}
+const DEFAULT_TASK_CFG = readTaskConfigFromDom();
+
+function loadTaskConfig(){
+  try{
+    const cfg = JSON.parse(localStorage.getItem(TASK_CFG_KEY) || 'null');
+    if(cfg && typeof cfg === 'object') return cfg;
+  } catch(e){}
+  return null;
+}
+function renderTasksFromConfig(cfg){
+  if(!cfg) return;
+  document.querySelectorAll('section.block').forEach(block=>{
+    const list = cfg[block.dataset.section];
+    if(!Array.isArray(list)) return;
+    block.querySelector('.items').innerHTML = list.map(t => taskRowHtml(t.text, t.chip)).join('');
+  });
+}
+
+/* ---- the editor UI (works on a draft in the DOM until "Save") ---- */
+function teRow(text, chip){
+  const d = document.createElement('div');
+  d.className = 'te-row';
+  d.innerHTML = '<button type="button" class="btn-ghost te-up" title="Move up">↑</button>' +
+    '<button type="button" class="btn-ghost te-down" title="Move down">↓</button>' +
+    '<input type="text" class="te-text" placeholder="Task description" value="' + teEsc(text) + '">' +
+    '<input type="text" class="te-chip" placeholder="Time (opt.)" value="' + teEsc(chip) + '">' +
+    '<button type="button" class="btn-ghost te-del" title="Delete task">×</button>';
+  return d;
+}
+function buildTaskEditor(cfg){
+  cfg = cfg || loadTaskConfig() || DEFAULT_TASK_CFG;
+  const host = document.getElementById('taskEditor');
+  host.innerHTML = '';
+  Object.keys(DEFAULT_TASK_CFG).forEach(section=>{
+    const title = document.createElement('div');
+    title.className = 'te-sec-title'; title.textContent = section;
+    const list = document.createElement('div');
+    list.className = 'te-list'; list.dataset.section = section;
+    (cfg[section] || []).forEach(t => list.appendChild(teRow(t.text, t.chip)));
+    const add = document.createElement('button');
+    add.type = 'button'; add.className = 'btn-ghost te-add'; add.textContent = '+ Add task';
+    add.style.cssText = 'padding:6px 12px;font-size:0.8rem;';
+    add.addEventListener('click', ()=>{
+      const r = teRow('', ''); list.appendChild(r); r.querySelector('.te-text').focus();
+    });
+    host.append(title, list, add);
+  });
+}
+document.getElementById('taskEditor').addEventListener('click', e=>{
+  const row = e.target.closest('.te-row');
+  if(!row) return;
+  if(e.target.closest('.te-del')) row.remove();
+  else if(e.target.closest('.te-up') && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
+  else if(e.target.closest('.te-down') && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
+});
+
+function taskEditStatus(msg, cls){
+  const el = document.getElementById('taskEditStatus');
+  el.textContent = msg; el.className = cls || '';
+}
+function readTaskEditor(){
+  const cfg = {};
+  let error = null;
+  document.querySelectorAll('#taskEditor .te-list').forEach(list=>{
+    const section = list.dataset.section;
+    const seen = new Set();
+    cfg[section] = [];
+    list.querySelectorAll('.te-row').forEach(row=>{
+      const text = row.querySelector('.te-text').value.replace(/\s+/g, ' ').trim();
+      const chip = row.querySelector('.te-chip').value.trim();
+      if(!text && !chip) return;                        // ignore fully blank rows
+      if(!text){ error = error || `${section}: a task has a time but no description.`; return; }
+      if(chip && parseHourFromText(chip) === null){ error = error || `${section}: "${chip}" isn't a valid time (use e.g. 9 AM, 5:30 PM or 17:30).`; return; }
+      const k = text.toLowerCase() + '||' + chip.toLowerCase();
+      if(seen.has(k)){ error = error || `${section}: "${text}" appears twice with the same time.`; return; }
+      seen.add(k);
+      cfg[section].push({ text, chip });
+    });
+  });
+  return { cfg, error };
+}
+
+/* Move any saved (position-based) shift state onto task keys before the rows change. */
+function keyifyStoredStates(){
+  const rows = allItemRows();
+  ['day','night'].forEach(shift=>{
+    try{
+      const raw = localStorage.getItem(localStateKey(shift));
+      if(!raw) return;
+      const st = JSON.parse(raw);
+      if(!st || !Array.isArray(st.items) || st.items.some(it => it && it.key)) return;
+      st.items.forEach((it, i)=>{ if(it && rows[i]) it.key = rowKey(rows[i]); });
+      localStorage.setItem(localStateKey(shift), JSON.stringify(st));
+    } catch(e){}
+  });
+}
+
+function applyTaskConfig(cfg){
+  keyifyStoredStates();
+  saveLocalState(currentShift);                  // keep ticks/times/comments, keyed by task
+  renderTasksFromConfig(cfg);
+  allItemRows().forEach(wireRow);
+  classifyRowsByTime();
+  restoreLocalState(currentShift);
+  renderShiftChrome();
+  kpiBuildTaskSettings();
+}
+
+document.getElementById('taskSaveBtn').addEventListener('click', ()=>{
+  const { cfg, error } = readTaskEditor();
+  if(error){ taskEditStatus(error, 'err'); return; }
+  const total = Object.values(cfg).reduce((n, l) => n + l.length, 0);
+  if(!total){ taskEditStatus('Add at least one task.', 'err'); return; }
+  try{ localStorage.setItem(TASK_CFG_KEY, JSON.stringify(cfg)); }
+  catch(e){ taskEditStatus('Could not save tasks on this device.', 'err'); return; }
+  applyTaskConfig(cfg);
+  buildTaskEditor(cfg);
+  taskEditStatus(`Saved — ${total} tasks across ${Object.keys(cfg).length} sections.`, 'ok');
+});
+document.getElementById('taskResetBtn').addEventListener('click', ()=>{
+  if(!confirm('Reset the task list to the original defaults? Your edits will be lost.')) return;
+  try{ localStorage.removeItem(TASK_CFG_KEY); }catch(e){}
+  applyTaskConfig(DEFAULT_TASK_CFG);
+  buildTaskEditor(DEFAULT_TASK_CFG);
+  taskEditStatus('Task list reset to defaults.', 'ok');
+});
+
+/* use the saved task list from the first render */
+renderTasksFromConfig(loadTaskConfig());
+buildTaskEditor();
 
 /* initial render for the shift we started on */
 classifyRowsByTime();
@@ -1918,8 +2114,13 @@ document.getElementById('historyFilter').addEventListener('input', ()=>{
 });
 
 /* Mark checklist as having unsaved changes on any edit (save is manual) */
-document.querySelectorAll('input[type=checkbox], .item-time').forEach(el=> el.addEventListener('change', markDirty));
-document.querySelectorAll('.item-comment, .item-operator').forEach(el=> el.addEventListener('input', markDirty));
+function wireRow(row){
+  wireCheckbox(row.querySelector('input[type=checkbox]'));
+  wireTime(row.querySelector('.item-time'));
+  row.querySelectorAll('input[type=checkbox], .item-time').forEach(el=> el.addEventListener('change', markDirty));
+  row.querySelectorAll('.item-comment, .item-operator').forEach(el=> el.addEventListener('input', markDirty));
+}
+allItemRows().forEach(wireRow);
 document.getElementById('operatorName').addEventListener('input', markDirty);
 document.getElementById('sessionNotes').addEventListener('input', markDirty);
 
